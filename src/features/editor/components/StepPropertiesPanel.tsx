@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { updateStep } from "@/features/editor/api/stepQueries";
 import { ButtonListEditor } from "@/features/editor/components/ButtonListEditor";
 import { ChecklistItemsEditor } from "@/features/editor/components/ChecklistItemsEditor";
+import { SettingsDrillDown } from "@/features/editor/components/SettingsDrillDown";
 import { TargetSelectorField } from "@/features/editor/components/TargetSelectorField";
 import { useAutosaveStep, type AutosaveStatus } from "@/features/editor/hooks/useAutosaveStep";
 import { useStepHistory } from "@/features/editor/hooks/useStepHistory";
@@ -198,148 +199,158 @@ export function StepPropertiesPanel({
           </TabsList>
         </div>
 
-        <TabsContent value="settings" className="mt-0 flex-1 space-y-6 overflow-y-auto px-4 py-4">
-          <div className="space-y-3">
-            <SectionLabel>Content</SectionLabel>
-            <div className="space-y-2">
-              <Label>Step type</Label>
-              <Select value={stepType} onValueChange={(value: StepType) => void handleStepTypeChange(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STEP_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {STEP_TYPE_LABELS[type]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="step-title">Title</Label>
-              <Input
-                id="step-title"
-                value={title}
-                onChange={(e) => handleTitleChange(e.target.value)}
-                placeholder="Step title"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="step-body">Body</Label>
-              <Textarea
-                id="step-body"
-                value={content.body}
-                onChange={(e) => update({ body: e.target.value })}
-                placeholder="What should users see in this step?"
-                rows={4}
-              />
-            </div>
-
-            {stepType === "checklist" && (
-              <ChecklistItemsEditor
-                items={content.checklistItems}
-                onChange={(checklistItems) => update({ checklistItems })}
-              />
-            )}
-
-            {stepType === "confirmation" && (
-              <div className="grid grid-cols-2 gap-2">
+        <TabsContent value="settings" className="mt-0 flex-1 overflow-y-auto px-4 py-4">
+          <SettingsDrillDown
+            placementAvailable={showTargeting}
+            elementPanel={
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="confirm-label">Confirm label</Label>
+                  <Label>Step type</Label>
+                  <Select
+                    value={stepType}
+                    onValueChange={(value: StepType) => void handleStepTypeChange(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STEP_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {STEP_TYPE_LABELS[type]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="step-title">Title</Label>
                   <Input
-                    id="confirm-label"
-                    value={content.confirmLabel}
-                    onChange={(e) => update({ confirmLabel: e.target.value })}
+                    id="step-title"
+                    value={title}
+                    onChange={(e) => handleTitleChange(e.target.value)}
+                    placeholder="Step title"
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="cancel-label">Cancel label</Label>
-                  <Input
-                    id="cancel-label"
-                    value={content.cancelLabel}
-                    onChange={(e) => update({ cancelLabel: e.target.value })}
+                  <Label htmlFor="step-body">Body</Label>
+                  <Textarea
+                    id="step-body"
+                    value={content.body}
+                    onChange={(e) => update({ body: e.target.value })}
+                    placeholder="What should users see in this step?"
+                    rows={4}
                   />
                 </div>
+
+                {stepType === "checklist" && (
+                  <ChecklistItemsEditor
+                    items={content.checklistItems}
+                    onChange={(checklistItems) => update({ checklistItems })}
+                  />
+                )}
+
+                {stepType === "confirmation" && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm-label">Confirm label</Label>
+                      <Input
+                        id="confirm-label"
+                        value={content.confirmLabel}
+                        onChange={(e) => update({ confirmLabel: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cancel-label">Cancel label</Label>
+                      <Input
+                        id="cancel-label"
+                        value={content.cancelLabel}
+                        onChange={(e) => update({ cancelLabel: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-
-          {showTargeting && (
-            <>
-              <Separator className="bg-zinc-800" />
-              <div className="space-y-3">
-                <SectionLabel>Target</SectionLabel>
+            }
+            placementPanel={
+              <div className="space-y-4">
                 <TargetSelectorField
                   value={targetSelector}
                   onChange={handleTargetSelectorChange}
                   onRequestPick={onRequestPick}
                 />
-              </div>
-            </>
-          )}
 
-          <Separator className="bg-zinc-800" />
-          <div className="space-y-3">
-            <SectionLabel>Buttons</SectionLabel>
-            <ButtonListEditor buttons={content.buttons} onChange={(buttons) => update({ buttons })} />
-          </div>
+                <div className="space-y-2">
+                  <Label>Position</Label>
+                  <Select
+                    value={content.placement}
+                    onValueChange={(value: StepPlacement) => update({ placement: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PLACEMENTS.map((placement) => (
+                        <SelectItem key={placement} value={placement}>
+                          {placement.charAt(0).toUpperCase() + placement.slice(1)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="highlight-padding">Highlight padding</Label>
+                    <Input
+                      id="highlight-padding"
+                      type="number"
+                      min={0}
+                      max={64}
+                      value={content.highlightPadding}
+                      onChange={(e) => update({ highlightPadding: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="border-radius">Border radius</Label>
+                    <Input
+                      id="border-radius"
+                      type="number"
+                      min={0}
+                      max={48}
+                      value={content.borderRadius}
+                      onChange={(e) => update({ borderRadius: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+              </div>
+            }
+            behaviorPanel={
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="step-progress">Show progress indicator</Label>
+                  <Switch
+                    id="step-progress"
+                    checked={content.showProgress}
+                    onCheckedChange={(checked) => update({ showProgress: checked })}
+                  />
+                </div>
+
+                <Separator className="bg-zinc-800" />
+                <div className="space-y-3">
+                  <SectionLabel>Buttons</SectionLabel>
+                  <ButtonListEditor
+                    buttons={content.buttons}
+                    onChange={(buttons) => update({ buttons })}
+                  />
+                </div>
+              </div>
+            }
+          />
         </TabsContent>
 
         <TabsContent value="design" className="mt-0 flex-1 space-y-6 overflow-y-auto px-4 py-4">
-          {showTargeting && (
-            <div className="space-y-3">
-              <SectionLabel>Placement</SectionLabel>
-              <div className="space-y-2">
-                <Label>Position</Label>
-                <Select
-                  value={content.placement}
-                  onValueChange={(value: StepPlacement) => update({ placement: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PLACEMENTS.map((placement) => (
-                      <SelectItem key={placement} value={placement}>
-                        {placement.charAt(0).toUpperCase() + placement.slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-2">
-                  <Label htmlFor="highlight-padding">Highlight padding</Label>
-                  <Input
-                    id="highlight-padding"
-                    type="number"
-                    min={0}
-                    max={64}
-                    value={content.highlightPadding}
-                    onChange={(e) => update({ highlightPadding: Number(e.target.value) })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="border-radius">Border radius</Label>
-                  <Input
-                    id="border-radius"
-                    type="number"
-                    min={0}
-                    max={48}
-                    value={content.borderRadius}
-                    onChange={(e) => update({ borderRadius: Number(e.target.value) })}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {showTargeting && <Separator className="bg-zinc-800" />}
-
           <div className="space-y-3">
             <SectionLabel>Style</SectionLabel>
             <div className="space-y-2">
@@ -372,15 +383,6 @@ export function StepPropertiesPanel({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label htmlFor="step-progress">Show progress indicator</Label>
-              <Switch
-                id="step-progress"
-                checked={content.showProgress}
-                onCheckedChange={(checked) => update({ showProgress: checked })}
-              />
             </div>
           </div>
         </TabsContent>

@@ -77,6 +77,17 @@ Vite + React + TS scaffold, Tailwind + shadcn/ui init (New York/Zinc), ESLint fl
 - `sdk/README.md` updated: corrected the stale claim that `track()` "just logs" (9b wired real delivery), added a Framework examples section linking each file.
 - No SDK runtime code changed in this pass — purely documentation/packaging, so no new live-Supabase verification was needed beyond the existing typecheck/lint/build pass.
 
+## Editor drill-down settings + canvas mini-toolbar + install-check fix (done, third UI pass)
+
+A further pass after the user shared a 5th screenshot (Native Tooltip Settings with Element/Placement/Behavior/Frequency/Embedding drill-down rows and a floating on-canvas mini-toolbar).
+
+- `components/SettingsDrillDown.tsx` — generic row-list → sub-panel navigation shell (click a row, slide into a focused view with a back arrow). Only **Element**, **Placement**, **Behavior** rows are shown — the reference also has Frequency (show conditions) and Embedding (custom CSS/HTML), but neither has a backing data model yet, so they're intentionally omitted rather than linking to a fake/empty screen. Placement is disabled (grayed, non-clickable) for step types that don't support targeting (modal/announcement/confirmation/banner).
+- `StepPropertiesPanel`'s Settings tab now renders through this drill-down: Element = step type/title/body/type-specific fields, Placement = target selector (still wired to the same live on-canvas picker as before — re-picking accesses real, live elements of the loaded page, not a static list) + position/padding/radius, Behavior = progress toggle + buttons. Design tab (opacity, animation) is unchanged.
+- `components/CanvasStepToolbar.tsx` — floating icon cluster (re-pick target, duplicate, delete) anchored near the selected step's target on the canvas, mirroring the reference's on-canvas controls. Hidden in Preview mode.
+- **New capability**: step duplication, which didn't exist before. `stepQueries.duplicateStep()` counts existing steps in the version and appends the copy at the end (title suffixed " (copy)", content/target_selector copied as-is) — verified against live Supabase. Wired through `useStepMutations().duplicate` and the new canvas toolbar.
+- **Real bug found and fixed**: `useSnippetValidation.ts` (used by both the create-project flow and the Install page's "Recheck" button) was hiding its validation iframe with `display: none`, which some browsers pause or never start script execution for — meaning `picker.js` could fail to run at all and never post `picker-ready`, causing installed sites to incorrectly show "Not yet verified." Fixed by positioning the iframe off-screen (1×1, `position: fixed`, far negative offset) instead of hiding it, which keeps it "visible" to the layout/script engine while being invisible to the user.
+- Note for future sessions: this environment has no internet/browser access — all editor redesign work in this and the prior two passes was built strictly from screenshots the user pasted directly into chat, not from external references (a linked YouTube playlist could not be opened).
+
 ## Editor bottom-toolbar redesign (done, second UI pass following user-shared Userpilot screenshots)
 
 A further redesign pass after the user shared 4 screenshots of Userpilot's actual editor. Note: I have no browser/internet access in this environment and could not fetch a linked YouTube playlist or any other external reference — everything here is built strictly from what was visible in the shared screenshots.

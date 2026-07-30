@@ -75,6 +75,31 @@ export async function updateStep({
   return data;
 }
 
+export async function duplicateStep(step: Step): Promise<Step> {
+  const { count, error: countError } = await supabase
+    .from("steps")
+    .select("id", { count: "exact", head: true })
+    .eq("tour_version_id", step.tour_version_id);
+
+  if (countError) throw countError;
+
+  const { data, error } = await supabase
+    .from("steps")
+    .insert({
+      tour_version_id: step.tour_version_id,
+      position: count ?? 0,
+      step_type: step.step_type,
+      title: step.title ? `${step.title} (copy)` : null,
+      content: step.content,
+      target_selector: step.target_selector,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 export async function deleteStep(id: string): Promise<void> {
   const { error } = await supabase.from("steps").delete().eq("id", id);
   if (error) throw error;

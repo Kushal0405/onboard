@@ -1,6 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { createStep, deleteStep, reorderSteps, updateStep } from "@/features/editor/api/stepQueries";
+import {
+  createStep,
+  deleteStep,
+  duplicateStep,
+  reorderSteps,
+  updateStep,
+  type Step,
+} from "@/features/editor/api/stepQueries";
 
 export function useStepMutations(tourVersionId: string | undefined) {
   const queryClient = useQueryClient();
@@ -29,5 +36,10 @@ export function useStepMutations(tourVersionId: string | undefined) {
     onSuccess: invalidate,
   });
 
-  return { create, update, remove, reorder };
+  const duplicate = useMutation({
+    mutationFn: (step: Step) => duplicateStep(step),
+    onSuccess: invalidate,
+  });
+
+  return { create, update, remove, reorder, duplicate };
 }

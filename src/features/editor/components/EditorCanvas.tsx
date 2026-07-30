@@ -3,6 +3,7 @@ import { CheckCircle2, Crosshair, ExternalLink, RotateCcw, XCircle } from "lucid
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CanvasStepToolbar } from "@/features/editor/components/CanvasStepToolbar";
 import { InstallSnippetDialog } from "@/features/editor/components/InstallSnippetDialog";
 import { StepOverlayPreview } from "@/features/editor/components/StepOverlayPreview";
 import { useElementLocation } from "@/features/editor/hooks/useElementLocation";
@@ -18,6 +19,9 @@ interface EditorCanvasProps {
   onPick: (selector: string) => void;
   pickRequestToken: number;
   previewMode: boolean;
+  onDuplicateStep: () => void;
+  onDeleteStep: () => void;
+  isDuplicating: boolean;
 }
 
 function normalizeUrl(value: string): string | null {
@@ -38,6 +42,9 @@ export function EditorCanvas({
   onPick,
   pickRequestToken,
   previewMode,
+  onDuplicateStep,
+  onDeleteStep,
+  isDuplicating,
 }: EditorCanvasProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -177,6 +184,17 @@ export function EditorCanvas({
             hasTargetSelector={!!targetSelector}
             snippetDetected={snippetDetected}
             hideEditorChrome={previewMode}
+          />
+        )}
+
+        {loadedUrl && !previewMode && step && (
+          <CanvasStepToolbar
+            anchorRect={targetRect}
+            canvasSize={canvasSize}
+            onPick={startPicking}
+            onDuplicate={onDuplicateStep}
+            onDelete={onDeleteStep}
+            isDuplicating={isDuplicating}
           />
         )}
       </div>

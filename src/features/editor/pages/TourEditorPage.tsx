@@ -36,7 +36,7 @@ export function TourEditorPage() {
   const tourVersionId = latestVersion?.id;
 
   const { data: steps, isLoading: isStepsLoading } = useSteps(tourVersionId);
-  const { create, remove, reorder } = useStepMutations(tourVersionId);
+  const { create, remove, reorder, duplicate } = useStepMutations(tourVersionId);
   const { publish } = useTourMutations(tour?.project_id);
 
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
@@ -82,6 +82,16 @@ export function TourEditorPage() {
       toast.success("Step deleted");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete step");
+    }
+  }
+
+  async function handleDuplicateStep(step: Step) {
+    try {
+      const copy = await duplicate.mutateAsync(step);
+      setSelectedStepId(copy.id);
+      toast.success("Step duplicated");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to duplicate step");
     }
   }
 
@@ -207,6 +217,9 @@ export function TourEditorPage() {
               }}
               pickRequestToken={pickRequestToken}
               previewMode={previewMode}
+              onDuplicateStep={() => selectedStep && void handleDuplicateStep(selectedStep)}
+              onDeleteStep={() => selectedStep && void handleDeleteStep(selectedStep)}
+              isDuplicating={duplicate.isPending}
             />
 
             {!previewMode && (

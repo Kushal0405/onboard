@@ -30,7 +30,18 @@ export function useSnippetValidation() {
 
     const iframe = document.createElement("iframe");
     iframe.src = url;
-    iframe.style.display = "none";
+    // Some browsers pause or never start script execution inside
+    // `display: none` iframes, which would mean picker.js never runs and
+    // never posts picker-ready - so instead of hiding it, position it
+    // off-screen but still laid out/rendered (1x1, clipped, but "visible"
+    // as far as the layout/script engine is concerned).
+    iframe.style.position = "fixed";
+    iframe.style.top = "-9999px";
+    iframe.style.left = "-9999px";
+    iframe.style.width = "1px";
+    iframe.style.height = "1px";
+    iframe.style.border = "0";
+    iframe.setAttribute("aria-hidden", "true");
     iframe.sandbox.add("allow-scripts", "allow-same-origin");
     document.body.appendChild(iframe);
     iframeRef.current = iframe;
