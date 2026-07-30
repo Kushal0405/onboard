@@ -46,7 +46,7 @@ Supabase project: `https://udsmmrdkevrwiicphhbp.supabase.co` (ref: `udsmmrdkevrw
 | 5 | Dashboard | ✅ Done | Workspace switcher, sidebar nav, empty-state home page — see below |
 | 6 | Projects (CRUD, search, pagination, duplicate) | ✅ Done | Duplicate shipped in Phase 7 alongside tour duplication |
 | 7 | Tour Builder (create/delete/duplicate, draft/published/archived, undo/redo, autosave, version history) | ✅ Done | Autosave shipped in Phase 8a |
-| 8 | Visual Editor (steps, drag/reorder, properties panel, placement, element picker) | 🟡 In progress (8a done) | 8a: step list + reorder + basic properties + autosave, shipped. 8b: full properties panel + all 9 step types. 8c: element picker + undo/redo. |
+| 8 | Visual Editor (steps, drag/reorder, properties panel, placement, element picker) | 🟡 In progress (8a+8b done) | 8a: step list + reorder + basic properties + autosave, shipped. 8b: full properties panel (targeting/style, buttons, animation, per-type fields) + step type switching, shipped. Visual redesign (Userpilot-style) pending as its own pass. 8c: element picker + undo/redo still to come. |
 | 9 | SDK (init/identify/track/start/stop/show/hide/destroy/updateUser, CDN + npm) | ⬜ Not started | |
 | 10 | Analytics (event tracking, dashboards, charts, filtering) | ⬜ Not started | |
 | 11 | Settings (workspace, profile, password, API keys, team, domains, billing placeholder) | ⬜ Not started | |
@@ -67,6 +67,16 @@ Vite + React + TS scaffold, Tailwind + shadcn/ui init (New York/Zinc), ESLint fl
 - `DashboardLayout` now shows the signed-in user's email and a sign-out button (calls `authService.signOut()`).
 - **OAuth dashboard setup**: Google provider enabled by user in Supabase Dashboard → Authentication → Providers. GitHub still needs the same treatment (create a GitHub OAuth App, add Client ID/Secret in the Supabase dashboard, callback URL `https://udsmmrdkevrwiicphhbp.supabase.co/auth/v1/callback`) before the GitHub button will work — the code path is already wired and doesn't need changes once that's done.
 - Password reset flow: `ForgotPasswordPage` calls `resetPasswordForEmail` (redirects to `/reset-password`); Supabase auto-establishes a recovery session from the emailed link, and `ResetPasswordPage` calls `updateUser({ password })`.
+
+## Phase 8b — Visual Editor: full properties panel (done)
+
+- `StepContent` extended with `animation` (none/fade/slide), `checklistItems`, `confirmLabel`/`cancelLabel`. `parseStepContent` updated to defensively parse all new fields with fallbacks.
+- `TARGETED_STEP_TYPES` (tooltip/hotspot/beacon/floating_card) vs `CENTERED_STEP_TYPES` (modal/announcement/confirmation) in `types.ts` — the properties panel conditionally shows placement/highlight-padding/border-radius only for targeted types, since centered overlays don't anchor to a DOM element.
+- `components/ButtonListEditor.tsx` — add/remove/edit label+action for the step's CTA buttons. `components/ChecklistItemsEditor.tsx` — add/remove/edit checklist item labels (only shown for `checklist` step type).
+- Confirmation-specific `confirmLabel`/`cancelLabel` fields shown only for the `confirmation` step type.
+- Step type can now be changed from the properties panel — this write is immediate (not debounced through autosave) since switching type changes which fields are visible and a stale debounce could save the wrong shape.
+- Verified end-to-end against live Supabase: step type change, checklist items round-trip, confirmation labels, custom buttons array, animation field.
+- **Not yet done**: visual redesign of the editor UI (currently functional but plain — a dedicated pass will restyle the step list/panel/add a live preview canvas, Userpilot-inspired). No slider component was added; padding/radius/opacity use plain number inputs to avoid another Radix dependency for this admin-style panel — acceptable for now, may swap to a slider in the redesign pass if it improves UX.
 
 ## Phase 8a — Visual Editor: step list, reorder, autosave (done)
 

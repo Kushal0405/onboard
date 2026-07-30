@@ -1,5 +1,14 @@
-import { DEFAULT_STEP_CONTENT, type StepContent } from "@/features/editor/types";
+import { DEFAULT_STEP_CONTENT, type ChecklistItem, type StepContent } from "@/features/editor/types";
 import type { Json } from "@/types/supabase";
+
+function isChecklistItem(value: unknown): value is ChecklistItem {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as ChecklistItem).id === "string" &&
+    typeof (value as ChecklistItem).label === "string"
+  );
+}
 
 export function parseStepContent(raw: Json): StepContent {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
@@ -32,8 +41,23 @@ export function parseStepContent(raw: Json): StepContent {
       typeof candidate.showProgress === "boolean"
         ? candidate.showProgress
         : DEFAULT_STEP_CONTENT.showProgress,
+    animation:
+      candidate.animation === "none" || candidate.animation === "fade" || candidate.animation === "slide"
+        ? candidate.animation
+        : DEFAULT_STEP_CONTENT.animation,
     buttons: Array.isArray(candidate.buttons)
       ? (candidate.buttons as StepContent["buttons"])
       : DEFAULT_STEP_CONTENT.buttons,
+    checklistItems: Array.isArray(candidate.checklistItems)
+      ? candidate.checklistItems.filter(isChecklistItem)
+      : DEFAULT_STEP_CONTENT.checklistItems,
+    confirmLabel:
+      typeof candidate.confirmLabel === "string"
+        ? candidate.confirmLabel
+        : DEFAULT_STEP_CONTENT.confirmLabel,
+    cancelLabel:
+      typeof candidate.cancelLabel === "string"
+        ? candidate.cancelLabel
+        : DEFAULT_STEP_CONTENT.cancelLabel,
   };
 }
