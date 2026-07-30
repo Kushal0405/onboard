@@ -319,7 +319,9 @@ export type Database = {
           created_by: string
           description: string | null
           id: string
+          is_installed: boolean
           name: string
+          site_url: string | null
           slug: string
           updated_at: string
           workspace_id: string
@@ -329,7 +331,9 @@ export type Database = {
           created_by: string
           description?: string | null
           id?: string
+          is_installed?: boolean
           name: string
+          site_url?: string | null
           slug: string
           updated_at?: string
           workspace_id: string
@@ -339,7 +343,9 @@ export type Database = {
           created_by?: string
           description?: string | null
           id?: string
+          is_installed?: boolean
           name?: string
+          site_url?: string | null
           slug?: string
           updated_at?: string
           workspace_id?: string

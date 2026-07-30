@@ -4,6 +4,9 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
+    "build:sdk-assets": "pnpm --filter @onboardflow/sdk build && node scripts/copy-sdk-assets.mjs",
+    "predev": "pnpm run build:sdk-assets",
+    "prebuild": "pnpm run build:sdk-assets",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",

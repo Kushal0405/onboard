@@ -133,6 +133,64 @@
     document.body.style.cursor = "";
   }
 
+  var locateSelector = null;
+  var locateTimer = null;
+  var lastLocateRect = null;
+
+  function rectsEqual(a, b) {
+    if (!a || !b) return a === b;
+    return a.top === b.top && a.left === b.left && a.width === b.width && a.height === b.height;
+  }
+
+  function tickLocate() {
+    if (!locateSelector) return;
+    var el = null;
+    try {
+      el = document.querySelector(locateSelector);
+    } catch (e) {
+      postToParent("locate-result", { selector: locateSelector, found: false, invalidSelector: true });
+      locateSelector = null;
+      return;
+    }
+
+    if (!el) {
+      if (lastLocateRect !== null) {
+        lastLocateRect = null;
+        postToParent("locate-result", { selector: locateSelector, found: false });
+      }
+      return;
+    }
+
+    var rect = el.getBoundingClientRect();
+    var next = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+    if (!rectsEqual(next, lastLocateRect)) {
+      lastLocateRect = next;
+      postToParent("locate-result", {
+        selector: locateSelector,
+        found: true,
+        rect: next,
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+      });
+    }
+  }
+
+  function startLocate(selector) {
+    locateSelector = selector;
+    lastLocateRect = null;
+    if (locateTimer) clearInterval(locateTimer);
+    locateTimer = setInterval(tickLocate, 150);
+    tickLocate();
+  }
+
+  function stopLocate() {
+    locateSelector = null;
+    lastLocateRect = null;
+    if (locateTimer) {
+      clearInterval(locateTimer);
+      locateTimer = null;
+    }
+  }
+
   window.addEventListener("message", function (event) {
     var data = event.data;
     if (!data || data.target !== "onboardflow-target-page") return;
@@ -141,6 +199,10 @@
       startPicker();
     } else if (data.type === "stop-picker") {
       stopPicker();
+    } else if (data.type === "locate-element") {
+      startLocate(data.selector);
+    } else if (data.type === "stop-locate") {
+      stopLocate();
     }
   });
 

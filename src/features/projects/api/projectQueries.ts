@@ -57,6 +57,8 @@ export interface CreateProjectParams {
   createdBy: string;
   name: string;
   description?: string;
+  siteUrl: string;
+  isInstalled: boolean;
 }
 
 export async function createProject({
@@ -64,6 +66,8 @@ export async function createProject({
   createdBy,
   name,
   description,
+  siteUrl,
+  isInstalled,
 }: CreateProjectParams): Promise<Project> {
   const baseSlug = slugify(name);
   let slug = baseSlug;
@@ -79,6 +83,8 @@ export async function createProject({
         name,
         slug,
         description: description || null,
+        site_url: siteUrl,
+        is_installed: isInstalled,
       })
       .select()
       .single();
@@ -99,6 +105,14 @@ export async function createProject({
 
 export async function deleteProject(projectId: string): Promise<void> {
   const { error } = await supabase.from("projects").delete().eq("id", projectId);
+  if (error) throw error;
+}
+
+export async function updateProjectInstallStatus(
+  projectId: string,
+  isInstalled: boolean,
+): Promise<void> {
+  const { error } = await supabase.from("projects").update({ is_installed: isInstalled }).eq("id", projectId);
   if (error) throw error;
 }
 

@@ -12,6 +12,7 @@ import { AuthCallbackPage } from "@/features/auth/pages/AuthCallbackPage";
 import { DashboardHomePage } from "@/features/dashboard/pages/DashboardHomePage";
 import { ProjectsPage } from "@/features/projects/pages/ProjectsPage";
 import { ProjectDetailPage } from "@/features/projects/pages/ProjectDetailPage";
+import { InstallPage } from "@/features/projects/pages/InstallPage";
 import { TourEditorPage } from "@/features/editor/pages/TourEditorPage";
 import { AnalyticsPage } from "@/features/analytics/pages/AnalyticsPage";
 import { SettingsPage } from "@/features/settings/pages/SettingsPage";
@@ -44,11 +45,16 @@ export const router = createBrowserRouter([
               { path: "dashboard", element: <DashboardHomePage /> },
               { path: "dashboard/projects", element: <ProjectsPage /> },
               { path: "dashboard/projects/:projectId", element: <ProjectDetailPage /> },
-              { path: "dashboard/tours/:tourId/edit", element: <TourEditorPage /> },
+              { path: "dashboard/projects/:projectId/install", element: <InstallPage /> },
               { path: "dashboard/analytics", element: <AnalyticsPage /> },
               { path: "dashboard/settings", element: <SettingsPage /> },
             ],
           },
+          // The tour editor is intentionally NOT nested under DashboardLayout —
+          // it takes over the full viewport (URL bar, canvas, step strip, dark
+          // sidebar), same as Userpilot/Chameleon's editor. It still requires
+          // auth via RequireAuth above.
+          { path: "dashboard/tours/:tourId/edit", element: <TourEditorPage /> },
         ],
       },
       {

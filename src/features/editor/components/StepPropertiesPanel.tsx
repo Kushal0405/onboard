@@ -40,11 +40,15 @@ function AutosaveIndicator({ status }: { status: AutosaveStatus }) {
   if (status === "idle") return null;
   const label = { saving: "Saving...", saved: "Saved", error: "Failed to save" }[status];
   return (
-    <span
-      className={`text-xs ${status === "error" ? "text-destructive" : "text-muted-foreground"}`}
-    >
+    <span className={`text-xs ${status === "error" ? "text-red-400" : "text-zinc-500"}`}>
       {label}
     </span>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <h4 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{children}</h4>
   );
 }
 
@@ -58,9 +62,16 @@ interface HistorySnapshot {
 interface StepPropertiesPanelProps {
   step: Step;
   onSaved: () => void;
+  onRequestPick: () => void;
+  onLiveChange: (state: { title: string; stepType: StepType; content: StepContent }) => void;
 }
 
-export function StepPropertiesPanel({ step, onSaved }: StepPropertiesPanelProps) {
+export function StepPropertiesPanel({
+  step,
+  onSaved,
+  onRequestPick,
+  onLiveChange,
+}: StepPropertiesPanelProps) {
   const [title, setTitle] = useState(step.title ?? "");
   const [stepType, setStepType] = useState<StepType>(step.step_type);
   const [content, setContent] = useState<StepContent>(() => parseStepContent(step.content));
@@ -73,6 +84,11 @@ export function StepPropertiesPanel({ step, onSaved }: StepPropertiesPanelProps)
     setContent(parseStepContent(step.content));
     setTargetSelector(step.target_selector ?? "");
   }, [step.id, step.title, step.step_type, step.content, step.target_selector]);
+
+  useEffect(() => {
+    onLiveChange({ title, stepType, content });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, stepType, content]);
 
   const historySnapshot = useMemo<HistorySnapshot>(
     () => ({ title, stepType, content, targetSelector }),
@@ -139,16 +155,16 @@ export function StepPropertiesPanel({ step, onSaved }: StepPropertiesPanelProps)
   const showTargeting = stepSupportsTargeting(stepType);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">Properties</h3>
+    <div className="dark flex h-full flex-col bg-zinc-900 text-zinc-100">
+      <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+        <h3 className="text-sm font-semibold">Step properties</h3>
         <div className="flex items-center gap-2">
           <AutosaveIndicator status={status} />
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="icon"
-              className="size-7"
+              className="size-7 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
               aria-label="Undo"
               disabled={!canUndo}
               onClick={() => undo(applySnapshot)}
@@ -158,7 +174,7 @@ export function StepPropertiesPanel({ step, onSaved }: StepPropertiesPanelProps)
             <Button
               variant="ghost"
               size="icon"
-              className="size-7"
+              className="size-7 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
               aria-label="Redo"
               disabled={!canRedo}
               onClick={() => redo(applySnapshot)}
@@ -169,173 +185,184 @@ export function StepPropertiesPanel({ step, onSaved }: StepPropertiesPanelProps)
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label>Step type</Label>
-        <Select value={stepType} onValueChange={(value: StepType) => void handleStepTypeChange(value)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {STEP_TYPES.map((type) => (
-              <SelectItem key={type} value={type}>
-                {STEP_TYPE_LABELS[type]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="step-title">Title</Label>
-        <Input
-          id="step-title"
-          value={title}
-          onChange={(e) => handleTitleChange(e.target.value)}
-          placeholder="Step title"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="step-body">Body</Label>
-        <Textarea
-          id="step-body"
-          value={content.body}
-          onChange={(e) => update({ body: e.target.value })}
-          placeholder="What should users see in this step?"
-          rows={4}
-        />
-      </div>
-
-      {stepType === "checklist" && (
-        <>
-          <Separator />
-          <ChecklistItemsEditor
-            items={content.checklistItems}
-            onChange={(checklistItems) => update({ checklistItems })}
-          />
-        </>
-      )}
-
-      {stepType === "confirmation" && (
-        <>
-          <Separator />
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-2">
-              <Label htmlFor="confirm-label">Confirm label</Label>
-              <Input
-                id="confirm-label"
-                value={content.confirmLabel}
-                onChange={(e) => update({ confirmLabel: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cancel-label">Cancel label</Label>
-              <Input
-                id="cancel-label"
-                value={content.cancelLabel}
-                onChange={(e) => update({ cancelLabel: e.target.value })}
-              />
-            </div>
-          </div>
-        </>
-      )}
-
-      <Separator />
-
-      {showTargeting && (
-        <div className="space-y-4">
-          <TargetSelectorField value={targetSelector} onChange={handleTargetSelectorChange} />
-
+      <div className="flex-1 space-y-6 overflow-y-auto px-4 py-4">
+        <div className="space-y-3">
+          <SectionLabel>Content</SectionLabel>
           <div className="space-y-2">
-            <Label>Placement</Label>
-            <Select
-              value={content.placement}
-              onValueChange={(value: StepPlacement) => update({ placement: value })}
-            >
+            <Label>Step type</Label>
+            <Select value={stepType} onValueChange={(value: StepType) => void handleStepTypeChange(value)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {PLACEMENTS.map((placement) => (
-                  <SelectItem key={placement} value={placement}>
-                    {placement.charAt(0).toUpperCase() + placement.slice(1)}
+                {STEP_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {STEP_TYPE_LABELS[type]}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-2">
-              <Label htmlFor="highlight-padding">Highlight padding</Label>
-              <Input
-                id="highlight-padding"
-                type="number"
-                min={0}
-                max={64}
-                value={content.highlightPadding}
-                onChange={(e) => update({ highlightPadding: Number(e.target.value) })}
-              />
+          <div className="space-y-2">
+            <Label htmlFor="step-title">Title</Label>
+            <Input
+              id="step-title"
+              value={title}
+              onChange={(e) => handleTitleChange(e.target.value)}
+              placeholder="Step title"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="step-body">Body</Label>
+            <Textarea
+              id="step-body"
+              value={content.body}
+              onChange={(e) => update({ body: e.target.value })}
+              placeholder="What should users see in this step?"
+              rows={4}
+            />
+          </div>
+
+          {stepType === "checklist" && (
+            <ChecklistItemsEditor
+              items={content.checklistItems}
+              onChange={(checklistItems) => update({ checklistItems })}
+            />
+          )}
+
+          {stepType === "confirmation" && (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
+                <Label htmlFor="confirm-label">Confirm label</Label>
+                <Input
+                  id="confirm-label"
+                  value={content.confirmLabel}
+                  onChange={(e) => update({ confirmLabel: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cancel-label">Cancel label</Label>
+                <Input
+                  id="cancel-label"
+                  value={content.cancelLabel}
+                  onChange={(e) => update({ cancelLabel: e.target.value })}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="border-radius">Border radius</Label>
-              <Input
-                id="border-radius"
-                type="number"
-                min={0}
-                max={48}
-                value={content.borderRadius}
-                onChange={(e) => update({ borderRadius: Number(e.target.value) })}
+          )}
+        </div>
+
+        {showTargeting && (
+          <>
+            <Separator className="bg-zinc-800" />
+            <div className="space-y-3">
+              <SectionLabel>Placement</SectionLabel>
+              <TargetSelectorField
+                value={targetSelector}
+                onChange={handleTargetSelectorChange}
+                onRequestPick={onRequestPick}
               />
+
+              <div className="space-y-2">
+                <Label>Position</Label>
+                <Select
+                  value={content.placement}
+                  onValueChange={(value: StepPlacement) => update({ placement: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PLACEMENTS.map((placement) => (
+                      <SelectItem key={placement} value={placement}>
+                        {placement.charAt(0).toUpperCase() + placement.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label htmlFor="highlight-padding">Highlight padding</Label>
+                  <Input
+                    id="highlight-padding"
+                    type="number"
+                    min={0}
+                    max={64}
+                    value={content.highlightPadding}
+                    onChange={(e) => update({ highlightPadding: Number(e.target.value) })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="border-radius">Border radius</Label>
+                  <Input
+                    id="border-radius"
+                    type="number"
+                    min={0}
+                    max={48}
+                    value={content.borderRadius}
+                    onChange={(e) => update({ borderRadius: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
             </div>
+          </>
+        )}
+
+        <Separator className="bg-zinc-800" />
+        <div className="space-y-3">
+          <SectionLabel>Style</SectionLabel>
+          <div className="space-y-2">
+            <Label htmlFor="overlay-opacity">Overlay opacity</Label>
+            <Input
+              id="overlay-opacity"
+              type="number"
+              min={0}
+              max={1}
+              step={0.05}
+              value={content.overlayOpacity}
+              onChange={(e) => update({ overlayOpacity: Number(e.target.value) })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Animation</Label>
+            <Select
+              value={content.animation}
+              onValueChange={(value: StepAnimation) => update({ animation: value })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ANIMATIONS.map((animation) => (
+                  <SelectItem key={animation} value={animation}>
+                    {animation.charAt(0).toUpperCase() + animation.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <Label htmlFor="step-progress">Show progress indicator</Label>
+            <Switch
+              id="step-progress"
+              checked={content.showProgress}
+              onCheckedChange={(checked) => update({ showProgress: checked })}
+            />
           </div>
         </div>
-      )}
 
-      <div className="space-y-2">
-        <Label htmlFor="overlay-opacity">Overlay opacity</Label>
-        <Input
-          id="overlay-opacity"
-          type="number"
-          min={0}
-          max={1}
-          step={0.05}
-          value={content.overlayOpacity}
-          onChange={(e) => update({ overlayOpacity: Number(e.target.value) })}
-        />
+        <Separator className="bg-zinc-800" />
+        <div className="space-y-3">
+          <SectionLabel>Buttons</SectionLabel>
+          <ButtonListEditor buttons={content.buttons} onChange={(buttons) => update({ buttons })} />
+        </div>
       </div>
-
-      <div className="space-y-2">
-        <Label>Animation</Label>
-        <Select
-          value={content.animation}
-          onValueChange={(value: StepAnimation) => update({ animation: value })}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {ANIMATIONS.map((animation) => (
-              <SelectItem key={animation} value={animation}>
-                {animation.charAt(0).toUpperCase() + animation.slice(1)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <Label htmlFor="step-progress">Show progress indicator</Label>
-        <Switch
-          id="step-progress"
-          checked={content.showProgress}
-          onCheckedChange={(checked) => update({ showProgress: checked })}
-        />
-      </div>
-
-      <Separator />
-
-      <ButtonListEditor buttons={content.buttons} onChange={(buttons) => update({ buttons })} />
     </div>
   );
 }

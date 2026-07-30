@@ -9,7 +9,7 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { SortableContext, arrayMove, horizontalListSortingStrategy } from "@dnd-kit/sortable";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -17,11 +17,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useTour, useLatestTourVersion } from "@/features/tours/hooks/useTour";
 import { TourStatusBadge } from "@/features/tours/components/TourStatusBadge";
 import { AddStepMenu } from "@/features/editor/components/AddStepMenu";
-import { SortableStepItem } from "@/features/editor/components/SortableStepItem";
+import { EditorCanvas } from "@/features/editor/components/EditorCanvas";
+import { SortableStepChip } from "@/features/editor/components/SortableStepChip";
 import { StepPropertiesPanel } from "@/features/editor/components/StepPropertiesPanel";
 import { useSteps } from "@/features/editor/hooks/useSteps";
 import { useStepMutations } from "@/features/editor/hooks/useStepMutations";
-import type { StepType } from "@/features/editor/types";
+import { updateStep } from "@/features/editor/api/stepQueries";
+import { parseStepContent } from "@/features/editor/utils/parseStepContent";
+import type { StepContent, StepType } from "@/features/editor/types";
 import type { Step } from "@/features/editor/api/stepQueries";
 
 export function TourEditorPage() {
@@ -35,6 +38,12 @@ export function TourEditorPage() {
 
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
   const [orderedSteps, setOrderedSteps] = useState<Step[]>([]);
+  const [pickRequestToken, setPickRequestToken] = useState(0);
+  const [liveEdit, setLiveEdit] = useState<{
+    title: string;
+    stepType: StepType;
+    content: StepContent;
+  } | null>(null);
 
   useEffect(() => {
     if (steps) {
@@ -91,37 +100,42 @@ export function TourEditorPage() {
     }
   }
 
-  const selectedStep = orderedSteps.find((s) => s.id === selectedStepId) ?? null;
+  const selectedStepIndex = orderedSteps.findIndex((s) => s.id === selectedStepId);
+  const selectedStep = selectedStepIndex >= 0 ? orderedSteps[selectedStepIndex]! : null;
   const isLoading = isTourLoading || isVersionLoading || isStepsLoading;
 
+  const canvasStep = selectedStep
+    ? {
+        ...selectedStep,
+        liveTitle: liveEdit?.title ?? selectedStep.title ?? "",
+        liveStepType: liveEdit?.stepType ?? selectedStep.step_type,
+        liveContent: liveEdit?.content ?? parseStepContent(selectedStep.content),
+      }
+    : null;
+
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-4 shrink-0">
-        <Button variant="ghost" size="sm" asChild className="-ml-2 mb-2">
+    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-zinc-950 text-zinc-100">
+      <div className="flex shrink-0 items-center gap-3 border-b border-zinc-800 px-4 py-2">
+        <Button variant="ghost" size="sm" asChild className="text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100">
           <Link to={tour ? `/dashboard/projects/${tour.project_id}` : "/dashboard/projects"}>
             <ArrowLeft className="size-4" />
-            {tour ? "Back to project" : "Back"}
+            Back
           </Link>
         </Button>
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {isTourLoading ? <Skeleton className="h-8 w-48" /> : tour?.name}
-          </h1>
-          {tour && <TourStatusBadge status={tour.status} />}
-        </div>
+        <div className="h-4 w-px bg-zinc-800" />
+        <h1 className="text-sm font-semibold">
+          {isTourLoading ? <Skeleton className="h-4 w-32 bg-zinc-800" /> : tour?.name}
+        </h1>
+        {tour && <TourStatusBadge status={tour.status} />}
       </div>
 
       {isLoading ? (
-        <div className="grid flex-1 grid-cols-[300px_1fr] gap-4">
-          <Skeleton className="h-full w-full" />
-          <Skeleton className="h-full w-full" />
+        <div className="flex-1 p-4">
+          <Skeleton className="h-full w-full bg-zinc-900" />
         </div>
       ) : (
-        <div className="grid flex-1 grid-cols-[300px_1fr] gap-4 overflow-hidden">
-          <div className="flex flex-col gap-3 overflow-y-auto rounded-xl border bg-muted/20 p-3">
-            <p className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Steps &middot; {orderedSteps.length}
-            </p>
+        <>
+          <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-zinc-800 bg-zinc-900/50 px-4 py-2">
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -129,11 +143,11 @@ export function TourEditorPage() {
             >
               <SortableContext
                 items={orderedSteps.map((s) => s.id)}
-                strategy={verticalListSortingStrategy}
+                strategy={horizontalListSortingStrategy}
               >
-                <div className="space-y-2">
+                <div className="flex items-center gap-2">
                   {orderedSteps.map((step, index) => (
-                    <SortableStepItem
+                    <SortableStepChip
                       key={step.id}
                       step={step}
                       index={index}
@@ -145,24 +159,47 @@ export function TourEditorPage() {
                 </div>
               </SortableContext>
             </DndContext>
-            {orderedSteps.length === 0 && (
-              <p className="px-1 text-sm text-muted-foreground">No steps yet.</p>
-            )}
             <AddStepMenu onAdd={(stepType) => void handleAddStep(stepType)} />
           </div>
 
-          <div className="overflow-y-auto rounded-xl border bg-card p-6 shadow-sm">
-            {selectedStep ? (
-              <StepPropertiesPanel key={selectedStep.id} step={selectedStep} onSaved={() => {}} />
-            ) : (
-              <div className="flex h-full items-center justify-center text-center">
-                <p className="text-sm text-muted-foreground">
-                  Select a step to edit its properties, or add a new one.
-                </p>
-              </div>
-            )}
+          <div className="grid flex-1 grid-cols-[1fr_340px] overflow-hidden">
+            <EditorCanvas
+              step={canvasStep}
+              stepIndex={selectedStepIndex >= 0 ? selectedStepIndex : 0}
+              totalSteps={orderedSteps.length}
+              onPick={(selector) => {
+                if (!selectedStep) return;
+                // Optimistically patch local state so the properties panel and
+                // canvas reflect the pick immediately; updateStep persists it
+                // (the panel's own autosave will also pick up target_selector
+                // on its next edit, but a pick should save right away).
+                setOrderedSteps((prev) =>
+                  prev.map((s) => (s.id === selectedStep.id ? { ...s, target_selector: selector } : s)),
+                );
+                void updateStep({ id: selectedStep.id, targetSelector: selector });
+              }}
+              pickRequestToken={pickRequestToken}
+            />
+
+            <div className="overflow-hidden border-l border-zinc-800">
+              {selectedStep ? (
+                <StepPropertiesPanel
+                  key={selectedStep.id}
+                  step={selectedStep}
+                  onSaved={() => {}}
+                  onRequestPick={() => setPickRequestToken((t) => t + 1)}
+                  onLiveChange={setLiveEdit}
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center p-6 text-center">
+                  <p className="text-sm text-zinc-500">
+                    Select a step to edit its properties, or add a new one.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

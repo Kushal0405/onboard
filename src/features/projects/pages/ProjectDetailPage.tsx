@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Route } from "lucide-react";
+import { ArrowLeft, Code2, Route } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,7 +38,17 @@ export function ProjectDetailPage() {
             </h1>
             {project?.description && <p className="text-muted-foreground">{project.description}</p>}
           </div>
-          {projectId && <CreateTourDialog projectId={projectId} />}
+          <div className="flex gap-2">
+            {projectId && (
+              <Button variant="outline" asChild>
+                <Link to={`/dashboard/projects/${projectId}/install`}>
+                  <Code2 className="size-4" />
+                  Install
+                </Link>
+              </Button>
+            )}
+            {projectId && <CreateTourDialog projectId={projectId} />}
+          </div>
         </div>
       </div>
 
