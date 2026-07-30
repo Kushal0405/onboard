@@ -45,8 +45,8 @@ Supabase project: `https://udsmmrdkevrwiicphhbp.supabase.co` (ref: `udsmmrdkevrw
 | 4 | Database (beyond Phase 2 base schema, if needed) | ✅ Skipped | No gaps found; Phase 2's schema covers everything so far. Revisit only if a later phase needs new tables/columns |
 | 5 | Dashboard | ✅ Done | Workspace switcher, sidebar nav, empty-state home page — see below |
 | 6 | Projects (CRUD, search, pagination, duplicate) | ✅ Done | Duplicate shipped in Phase 7 alongside tour duplication |
-| 7 | Tour Builder (create/delete/duplicate, draft/published/archived, undo/redo, autosave, version history) | 🟡 Mostly done | Tour list + lifecycle + version history shipped; Undo/redo and autosave deferred to Phase 8 (apply to step-editor content, which doesn't exist until then) |
-| 8 | Visual Editor (steps, drag/reorder, properties panel, placement, element picker) | ⬜ Not started | |
+| 7 | Tour Builder (create/delete/duplicate, draft/published/archived, undo/redo, autosave, version history) | ✅ Done | Autosave shipped in Phase 8a |
+| 8 | Visual Editor (steps, drag/reorder, properties panel, placement, element picker) | 🟡 In progress (8a done) | 8a: step list + reorder + basic properties + autosave, shipped. 8b: full properties panel + all 9 step types. 8c: element picker + undo/redo. |
 | 9 | SDK (init/identify/track/start/stop/show/hide/destroy/updateUser, CDN + npm) | ⬜ Not started | |
 | 10 | Analytics (event tracking, dashboards, charts, filtering) | ⬜ Not started | |
 | 11 | Settings (workspace, profile, password, API keys, team, domains, billing placeholder) | ⬜ Not started | |
@@ -68,7 +68,20 @@ Vite + React + TS scaffold, Tailwind + shadcn/ui init (New York/Zinc), ESLint fl
 - **OAuth dashboard setup**: Google provider enabled by user in Supabase Dashboard → Authentication → Providers. GitHub still needs the same treatment (create a GitHub OAuth App, add Client ID/Secret in the Supabase dashboard, callback URL `https://udsmmrdkevrwiicphhbp.supabase.co/auth/v1/callback`) before the GitHub button will work — the code path is already wired and doesn't need changes once that's done.
 - Password reset flow: `ForgotPasswordPage` calls `resetPasswordForEmail` (redirects to `/reset-password`); Supabase auto-establishes a recovery session from the emailed link, and `ResetPasswordPage` calls `updateUser({ password })`.
 
-## Phase 7 — Tour Builder (mostly done; undo/redo/autosave deferred)
+## Phase 8a — Visual Editor: step list, reorder, autosave (done)
+
+Phase 8 is split into three passes: **8a** (this — step list CRUD/reorder + basic properties + autosave), **8b** (full properties panel + all 9 step types), **8c** (URL-in-iframe element picker + undo/redo). Each is built, verified, and committed separately given the total scope.
+
+- `src/features/editor/types.ts` — `StepContent` shape (body, placement, highlightPadding, borderRadius, overlayOpacity, showProgress, buttons) designed for the full properties panel up front, even though 8a only exposes body/placement/showProgress in the UI — avoids a painful data migration when 8b adds the rest. `STEP_TYPES`/`STEP_TYPE_LABELS` cover all 9 spec'd types (tooltip, modal, hotspot, beacon, checklist, announcement, banner, floating_card, confirmation).
+- `api/stepQueries.ts` — `fetchSteps`, `createStep` (seeds `DEFAULT_STEP_CONTENT`), `updateStep`, `deleteStep`, `reorderSteps`. **Reorder is two-phase** (negative staging positions, then final positions) because `steps` has a `unique (tour_version_id, position)` constraint — writing final positions directly can transiently collide depending on update order when swapping steps. Verified against live Supabase with an actual 3-step swap.
+- `hooks/useSteps.ts`, `useStepMutations.ts`, `useAutosaveStep.ts` (800ms debounce, tracks `idle/saving/saved/error` status, keyed per step id).
+- `utils/parseStepContent.ts` — defensively parses the untyped `Json` column into `StepContent` with per-field fallbacks (DB has no schema for JSONB contents).
+- `components/SortableStepItem.tsx` (dnd-kit `useSortable`), `AddStepMenu.tsx`, `StepPropertiesPanel.tsx` (title, body, placement select, progress toggle — this is the "basic" subset; full styling controls land in 8b).
+- `pages/TourEditorPage.tsx` (route `/dashboard/tours/:tourId/edit`) — two-pane layout (step list + properties), `DndContext`/`SortableContext` for reordering, optimistic local reorder with rollback on failure.
+- New shared UI primitives added as needed: `src/components/ui/{textarea,select,switch}.tsx` (standard shadcn, `@radix-ui/react-select` + `@radix-ui/react-switch` installed). `@dnd-kit/{core,sortable,utilities}` installed for drag-and-drop.
+- Verified end-to-end against live Supabase: create 3 steps, list in position order, reorder (swap, collision-safe), update content JSONB, delete, confirm remaining count.
+
+## Phase 7 — Tour Builder (done)
 
 - `src/features/tours/api/tourQueries.ts` — `fetchToursForProject`, `createTour` (also inserts the initial `tour_versions` row, version 1, unpublished), `deleteTour`, `duplicateTour` (clones the tour row + creates a fresh version 1 + clones all `steps` from the source tour's latest version), `archiveTour`, `restoreTourToDraft`, `publishTourLatestVersion` (marks the latest `tour_versions` row published, sets `tours.status = 'published'` and `tours.published_version_id`), `fetchTourVersions`.
 - `hooks/useTours.ts`, `useTourMutations.ts` (create/remove/duplicate/archive/restoreToDraft/publish), `useTourVersions.ts` — TanStack Query, invalidate the `tours` list on any mutation.

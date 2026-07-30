@@ -153,6 +153,25 @@ export async function publishTourLatestVersion(tourId: string): Promise<void> {
   if (tourUpdateError) throw tourUpdateError;
 }
 
+export async function fetchTourById(tourId: string): Promise<Tour | null> {
+  const { data, error } = await supabase.from("tours").select("*").eq("id", tourId).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchLatestTourVersion(tourId: string): Promise<TourVersion | null> {
+  const { data, error } = await supabase
+    .from("tour_versions")
+    .select("*")
+    .eq("tour_id", tourId)
+    .order("version_number", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
 export async function fetchTourVersions(tourId: string): Promise<TourVersion[]> {
   const { data, error } = await supabase
     .from("tour_versions")

@@ -62,10 +62,13 @@ export function ProjectDetailPage() {
           {tours.map((tour) => (
             <Card key={tour.id}>
               <CardContent className="flex items-center justify-between py-4">
-                <div className="flex items-center gap-3">
+                <Link
+                  to={`/dashboard/tours/${tour.id}/edit`}
+                  className="flex flex-1 items-center gap-3"
+                >
                   <span className="font-medium">{tour.name}</span>
                   <TourStatusBadge status={tour.status} />
-                </div>
+                </Link>
                 <TourActionsMenu
                   tour={tour}
                   onDelete={setTourToDelete}
