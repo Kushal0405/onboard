@@ -39,9 +39,9 @@ Supabase project: `https://udsmmrdkevrwiicphhbp.supabase.co` (ref: `udsmmrdkevrw
 
 | # | Phase | Status | Notes |
 |---|-------|--------|-------|
-| 1 | Project setup (Vite/TS/Tailwind/shadcn/router scaffold) | 🟡 In progress | Core config + provider/layout scaffolding underway |
-| 2 | Supabase foundation (schema, RLS, auth) | ⬜ Not started | 14-migration schema designed, not yet written/applied |
-| 3 | Authentication (email, Google, GitHub, protected routes, password reset) | ⬜ Not started | |
+| 1 | Project setup (Vite/TS/Tailwind/shadcn/router scaffold) | ✅ Done | |
+| 2 | Supabase foundation (schema, RLS, auth) | ✅ Done | 14 migrations applied to live project; auth trigger verified end-to-end |
+| 3 | Authentication (email, Google, GitHub, protected routes, password reset) | ✅ Done | Login/signup/forgot-password/reset-password/OAuth-callback pages, RequireAuth-gated dashboard route, logout. Google OAuth enabled in Supabase dashboard by user; GitHub OAuth still needs dashboard setup |
 | 4 | Database (beyond Phase 2 base schema, if needed) | ⬜ Not started | |
 | 5 | Dashboard | ⬜ Not started | |
 | 6 | Projects (CRUD, search, pagination, duplicate) | ⬜ Not started | |
@@ -58,7 +58,17 @@ Supabase project: `https://udsmmrdkevrwiicphhbp.supabase.co` (ref: `udsmmrdkevrw
 
 Vite + React + TS scaffold, Tailwind + shadcn/ui init (New York/Zinc), ESLint flat config + Prettier, `@/*` path aliases, feature-based folder structure, React Router base + lazy routes, TanStack Query provider, Zustand convention (stores created per-feature when needed, not stubbed upfront), git init.
 
-## Phase 2 — Supabase foundation (next)
+## Phase 3 — Authentication (done)
+
+- Pages under `src/features/auth/pages/`: `LoginPage`, `SignupPage`, `ForgotPasswordPage`, `ResetPasswordPage`, `AuthCallbackPage` — all routed under `<AuthLayout>` in `src/app/routes.tsx` (`/login`, `/signup`, `/forgot-password`, `/reset-password`, `/auth/callback`).
+- Forms use React Hook Form + Zod resolvers; schemas live in `src/features/auth/schemas.ts`.
+- `src/features/auth/components/OAuthButtons.tsx` — Google + GitHub buttons calling `signInWithOAuth`, redirecting through `/auth/callback`.
+- `/dashboard` is gated by `RequireAuth` (`src/features/auth/components/RequireAuth.tsx`) wrapping `DashboardLayout`; unauthenticated users are redirected to `/login` with the original destination preserved in router state.
+- `DashboardLayout` now shows the signed-in user's email and a sign-out button (calls `authService.signOut()`).
+- **OAuth dashboard setup**: Google provider enabled by user in Supabase Dashboard → Authentication → Providers. GitHub still needs the same treatment (create a GitHub OAuth App, add Client ID/Secret in the Supabase dashboard, callback URL `https://udsmmrdkevrwiicphhbp.supabase.co/auth/v1/callback`) before the GitHub button will work — the code path is already wired and doesn't need changes once that's done.
+- Password reset flow: `ForgotPasswordPage` calls `resetPasswordForEmail` (redirects to `/reset-password`); Supabase auto-establishes a recovery session from the emailed link, and `ResetPasswordPage` calls `updateUser({ password })`.
+
+## Phase 2 — Supabase foundation (done, see migrations in supabase/migrations/)
 
 Full design already exists in `C:\Users\saisu\.claude\plans\you-are-a-senior-composed-seahorse.md` (or ask to re-derive if that file is gone) — summary:
 

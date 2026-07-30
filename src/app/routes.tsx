@@ -3,20 +3,13 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AuthLayout } from "@/layouts/AuthLayout";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { RootLayout } from "@/layouts/RootLayout";
-
-// Phase 3 will add the real auth pages (login, signup, reset-password, etc.)
-// under the <AuthLayout> route below. Phase 4+ will add dashboard pages
-// under <DashboardLayout>. Both layouts are wired up now so those phases
-// only need to add child routes.
-
-function HomePlaceholder() {
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-2">
-      <h1 className="text-2xl font-semibold">OnboardFlow</h1>
-      <p className="text-muted-foreground">Coming soon.</p>
-    </div>
-  );
-}
+import { RequireAuth } from "@/features/auth/components/RequireAuth";
+import { LoginPage } from "@/features/auth/pages/LoginPage";
+import { SignupPage } from "@/features/auth/pages/SignupPage";
+import { ForgotPasswordPage } from "@/features/auth/pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "@/features/auth/pages/ResetPasswordPage";
+import { AuthCallbackPage } from "@/features/auth/pages/AuthCallbackPage";
+import { DashboardHomePage } from "@/features/dashboard/pages/DashboardHomePage";
 
 export const router = createBrowserRouter([
   {
@@ -25,18 +18,25 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <HomePlaceholder />,
+        element: <Navigate to="/login" replace />,
       },
       {
         element: <AuthLayout />,
         children: [
-          // Phase 3: /login, /signup, /reset-password
+          { path: "login", element: <LoginPage /> },
+          { path: "signup", element: <SignupPage /> },
+          { path: "forgot-password", element: <ForgotPasswordPage /> },
+          { path: "reset-password", element: <ResetPasswordPage /> },
+          { path: "auth/callback", element: <AuthCallbackPage /> },
         ],
       },
       {
-        element: <DashboardLayout />,
+        element: <RequireAuth />,
         children: [
-          // Phase 4+: /dashboard, /projects, /tours, etc.
+          {
+            element: <DashboardLayout />,
+            children: [{ path: "dashboard", element: <DashboardHomePage /> }],
+          },
         ],
       },
       {
