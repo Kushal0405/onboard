@@ -376,6 +376,10 @@ allow_dynamic_registration = false
 # session exists there); the function validates the public_key itself.
 verify_jwt = false
 
+[functions.record-event]
+# Same as get-tour: called anonymously by the SDK, validates public_key itself.
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

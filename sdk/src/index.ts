@@ -1,9 +1,11 @@
 import { fetchPublishedTours } from "./api";
+import { recordEvent, type AnalyticsEventType } from "./analytics";
 import { clearStep, renderStep, type StepButtonAction } from "./renderer";
 import { getOrCreateAnonymousId, markStepCompleted, readCompletedStepIds } from "./storage";
 import type { GetTourResponse, OnboardFlowUser, PublicTour } from "./types";
 
 export type { GetTourResponse, OnboardFlowUser, PublicTour, PublicStep, StepContent } from "./types";
+export type { AnalyticsEventType } from "./analytics";
 
 export interface OnboardFlowInitOptions {
   publicKey: string;
@@ -15,6 +17,16 @@ interface ActiveTourState {
   tour: PublicTour;
   stepIndex: number;
 }
+
+const TRACKABLE_EVENT_TYPES: ReadonlySet<string> = new Set([
+  "tour_started",
+  "tour_completed",
+  "tour_dismissed",
+  "step_viewed",
+  "step_completed",
+  "step_skipped",
+  "cta_clicked",
+]);
 
 class OnboardFlowSDK {
   private publicKey: string | null = null;
@@ -58,10 +70,35 @@ class OnboardFlowSDK {
     this.user = { ...this.user, ...traits };
   }
 
+  /**
+   * Fires a tracking event. Delivery requires an active tour (events are
+   * scoped to tourId/tourVersionId in analytics_events), so calls outside a
+   * tour context (before start(), or for arbitrary custom event names) are
+   * logged locally but not sent — analytics_events has no room for
+   * tour-less events by design (see Phase 2 schema).
+   */
   track(eventName: string, properties: Record<string, unknown> = {}): void {
     const userId = this.user?.id ?? getOrCreateAnonymousId();
-    // Analytics event delivery to analytics_events/sessions lands in Phase 9b.
-    console.debug("[OnboardFlow] track", eventName, { userId, ...properties });
+
+    if (!this.publicKey || !this.active || !TRACKABLE_EVENT_TYPES.has(eventName)) {
+      console.debug("[OnboardFlow] track (local only)", eventName, { userId, ...properties });
+      return;
+    }
+
+    const stepId = typeof properties.stepId === "string" ? properties.stepId : null;
+    const metadata = { ...properties };
+    delete metadata.stepId;
+
+    recordEvent({
+      publicKey: this.publicKey,
+      endUserId: userId,
+      eventType: eventName as AnalyticsEventType,
+      tourId: this.active.tour.id,
+      tourVersionId: this.active.tour.tourVersionId,
+      stepId,
+      metadata,
+      apiBase: this.apiBase,
+    });
   }
 
   start(tourId: string): void {

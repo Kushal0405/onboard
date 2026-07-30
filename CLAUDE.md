@@ -49,7 +49,7 @@ Supabase project: `https://udsmmrdkevrwiicphhbp.supabase.co` (ref: `udsmmrdkevrw
 | 6 | Projects (CRUD, search, pagination, duplicate) | ✅ Done | Duplicate shipped in Phase 7 alongside tour duplication |
 | 7 | Tour Builder (create/delete/duplicate, draft/published/archived, undo/redo, autosave, version history) | ✅ Done | Autosave shipped in Phase 8a |
 | 8 | Visual Editor (steps, drag/reorder, properties panel, placement, element picker) | ✅ Done | 8a (list/reorder/autosave), 8b (full properties panel), 8c (element picker + undo/redo + visual polish) all shipped. Picker requires the target page to load `/picker.js` (SDK-cooperative, like Userpilot/Intercom in production) — arbitrary cross-origin pages can't be click-picked due to browser security, not a bug. |
-| 9 | SDK (init/identify/track/start/stop/show/hide/destroy/updateUser, CDN + npm) | 🟡 In progress (9a done) | 9a: full public API surface, all 9 step-type rendering, caching + retry, get-tour Edge Function, verified end-to-end against live Supabase. 9b (analytics wiring) and 9c (framework wrapper examples) still to come. |
+| 9 | SDK (init/identify/track/start/stop/show/hide/destroy/updateUser, CDN + npm) | 🟡 In progress (9a+9b done) | 9a: full public API + rendering + get-tour. 9b: analytics event delivery via record-event, verified end-to-end (including a real concurrency bug found and fixed — see below). 9c (framework wrapper examples) still to come. |
 | 10 | Analytics (event tracking, dashboards, charts, filtering) | ⬜ Not started | |
 | 11 | Settings (workspace, profile, password, API keys, team, domains, billing placeholder) | ⬜ Not started | |
 | 12 | Optimization (lazy loading, code splitting, memoization, virtualization) | ⬜ Not started | |
@@ -69,6 +69,13 @@ Vite + React + TS scaffold, Tailwind + shadcn/ui init (New York/Zinc), ESLint fl
 - `DashboardLayout` now shows the signed-in user's email and a sign-out button (calls `authService.signOut()`).
 - **OAuth dashboard setup**: Google provider enabled by user in Supabase Dashboard → Authentication → Providers. GitHub still needs the same treatment (create a GitHub OAuth App, add Client ID/Secret in the Supabase dashboard, callback URL `https://udsmmrdkevrwiicphhbp.supabase.co/auth/v1/callback`) before the GitHub button will work — the code path is already wired and doesn't need changes once that's done.
 - Password reset flow: `ForgotPasswordPage` calls `resetPasswordForEmail` (redirects to `/reset-password`); Supabase auto-establishes a recovery session from the emailed link, and `ResetPasswordPage` calls `updateUser({ password })`.
+
+## Phase 9b — SDK: analytics event delivery (done)
+
+- `supabase/functions/record-event/index.ts` — public Edge Function (`verify_jwt = false`), validates `public_key`, finds-or-creates a `sessions` row (by `sessionId` if the caller has one, else creates a new one and returns its id), inserts into `analytics_events`. Same trust model as `get-tour`: service role internally, caller has no auth.
+- `sdk/src/analytics.ts` — `recordEvent()` posts to `record-event` with retry/backoff on 5xx/network errors, caches the returned `session_id` in `localStorage` keyed by `public_key` so subsequent calls reuse the same session.
+- **Real bug found and fixed during verification**: the SDK fires multiple `track()` calls back-to-back on tour start (`tour_started` then `step_viewed`, synchronously in `start()`/`renderActiveStep()`). Sending these concurrently meant every call read the *same empty* cached session id before any response came back, so the Edge Function created a separate session row per event instead of one per visitor. Fixed with a serialized delivery queue (`deliveryQueue = deliveryQueue.then(() => sendEvent(params))` in `analytics.ts`) — each event now waits for the previous one's response, and therefore its cached session id, before sending. Verified with a live jsdom run against a real published tour: exactly 1 session row, all events correctly attributed to it.
+- `track()` in `sdk/src/index.ts` now actually delivers for the 7 spec'd `analytics_event_type` enum values when called with an active tour; calls outside that (arbitrary event names, or before `start()`) still just log locally, since `analytics_events` has no room for tour-less events by schema design.
 
 ## Phase 9a — SDK: core vanilla JS SDK (done)
 
