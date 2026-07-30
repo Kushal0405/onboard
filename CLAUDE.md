@@ -46,7 +46,7 @@ Supabase project: `https://udsmmrdkevrwiicphhbp.supabase.co` (ref: `udsmmrdkevrw
 | 5 | Dashboard | ✅ Done | Workspace switcher, sidebar nav, empty-state home page — see below |
 | 6 | Projects (CRUD, search, pagination, duplicate) | ✅ Done | Duplicate shipped in Phase 7 alongside tour duplication |
 | 7 | Tour Builder (create/delete/duplicate, draft/published/archived, undo/redo, autosave, version history) | ✅ Done | Autosave shipped in Phase 8a |
-| 8 | Visual Editor (steps, drag/reorder, properties panel, placement, element picker) | 🟡 In progress (8a+8b done) | 8a: step list + reorder + basic properties + autosave, shipped. 8b: full properties panel (targeting/style, buttons, animation, per-type fields) + step type switching, shipped. Visual redesign (Userpilot-style) pending as its own pass. 8c: element picker + undo/redo still to come. |
+| 8 | Visual Editor (steps, drag/reorder, properties panel, placement, element picker) | ✅ Done | 8a (list/reorder/autosave), 8b (full properties panel), 8c (element picker + undo/redo + visual polish) all shipped. Picker requires the target page to load `/picker.js` (SDK-cooperative, like Userpilot/Intercom in production) — arbitrary cross-origin pages can't be click-picked due to browser security, not a bug. |
 | 9 | SDK (init/identify/track/start/stop/show/hide/destroy/updateUser, CDN + npm) | ⬜ Not started | |
 | 10 | Analytics (event tracking, dashboards, charts, filtering) | ⬜ Not started | |
 | 11 | Settings (workspace, profile, password, API keys, team, domains, billing placeholder) | ⬜ Not started | |
@@ -67,6 +67,18 @@ Vite + React + TS scaffold, Tailwind + shadcn/ui init (New York/Zinc), ESLint fl
 - `DashboardLayout` now shows the signed-in user's email and a sign-out button (calls `authService.signOut()`).
 - **OAuth dashboard setup**: Google provider enabled by user in Supabase Dashboard → Authentication → Providers. GitHub still needs the same treatment (create a GitHub OAuth App, add Client ID/Secret in the Supabase dashboard, callback URL `https://udsmmrdkevrwiicphhbp.supabase.co/auth/v1/callback`) before the GitHub button will work — the code path is already wired and doesn't need changes once that's done.
 - Password reset flow: `ForgotPasswordPage` calls `resetPasswordForEmail` (redirects to `/reset-password`); Supabase auto-establishes a recovery session from the emailed link, and `ResetPasswordPage` calls `updateUser({ password })`.
+
+## Phase 8c — Visual Editor: element picker, undo/redo, visual polish (done)
+
+**Architectural note on the element picker** (important context for later phases, especially Phase 9's SDK): true click-to-pick across a cross-origin iframe is blocked by the browser itself — there's no script the parent page can run inside a cross-origin iframe, regardless of framing headers. This isn't a bug to work around; it's the same trust boundary `X-Frame-Options`/CSP exist to enforce. Production tools like Userpilot/Intercom solve this because their *own SDK* is what runs on the target page and cooperatively `postMessage`s back — the target page has opted in by loading their script. OnboardFlow's picker works the same way:
+
+- `public/picker.js` — a small standalone injectable script (pulled forward from Phase 9's SDK scope) that a target page loads via `<script src=".../picker.js">`. Listens for a `start-picker` postMessage, highlights the hovered element with a fixed-position overlay box, generates a CSS selector on click (prefers `#id`, falls back to filtered stable classes — auto-generated ones like `js-*`/hashed classes are excluded — then `nth-of-type` among same-tag siblings, capped at depth 6), and posts `element-picked` back to the parent. Selector algorithm verified in isolation against id/class/sibling-index/nested-path cases.
+- `hooks/useElementPicker.ts` — listens for `picker-ready` (snippet detected), `picker-started`, `element-picked`, `picker-cancelled` messages.
+- `components/ElementPickerCanvas.tsx` — URL bar + iframe (sandboxed: `allow-scripts allow-same-origin allow-forms allow-popups`) + "Pick element" toggle, shown once the snippet posts `picker-ready`. If a page can't be framed at all (most production sites, since `onError` doesn't reliably fire for `X-Frame-Options` blocks), the UI degrades to manual selector entry — documented honestly in `InstallSnippetDialog.tsx`, not silently broken.
+- `components/TargetSelectorField.tsx` — text input (manual entry always works) + a picker button that opens `ElementPickerCanvas` in a dialog; wired into `StepPropertiesPanel` for DOM-targeted step types, autosaves to `steps.target_selector`.
+- `hooks/useStepHistory.ts` + wiring in `StepPropertiesPanel` — generic undo/redo over a `{title, stepType, content, targetSelector}` snapshot, pushes to history only on settled changes (not every keystroke, via reference-equality + JSON diff check), 50-entry cap, Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z shortcuts (ignored while focused in a text input, since those have native undo) plus toolbar buttons.
+- Visual polish: `SortableStepItem` now shows a per-type icon (`utils/stepTypeIcons.tsx`) and a selected/hover state closer to Userpilot's step list; `TourEditorPage` shell tightened (step count header, card-style panes, consistent rounding/shadow).
+- Verified: `picker.js` served correctly from `dist/`, selector-generation algorithm tested in isolation, `target_selector` persistence verified against live Supabase.
 
 ## Phase 8b — Visual Editor: full properties panel (done)
 

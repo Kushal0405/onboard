@@ -96,7 +96,7 @@ export function TourEditorPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="mb-4">
+      <div className="mb-4 shrink-0">
         <Button variant="ghost" size="sm" asChild className="-ml-2 mb-2">
           <Link to={tour ? `/dashboard/projects/${tour.project_id}` : "/dashboard/projects"}>
             <ArrowLeft className="size-4" />
@@ -104,7 +104,7 @@ export function TourEditorPage() {
           </Link>
         </Button>
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold">
+          <h1 className="text-2xl font-semibold tracking-tight">
             {isTourLoading ? <Skeleton className="h-8 w-48" /> : tour?.name}
           </h1>
           {tour && <TourStatusBadge status={tour.status} />}
@@ -112,14 +112,21 @@ export function TourEditorPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid flex-1 grid-cols-[280px_1fr] gap-4">
+        <div className="grid flex-1 grid-cols-[300px_1fr] gap-4">
           <Skeleton className="h-full w-full" />
           <Skeleton className="h-full w-full" />
         </div>
       ) : (
-        <div className="grid flex-1 grid-cols-[280px_1fr] gap-4 overflow-hidden">
-          <div className="flex flex-col gap-3 overflow-y-auto rounded-md border p-3">
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => void handleDragEnd(e)}>
+        <div className="grid flex-1 grid-cols-[300px_1fr] gap-4 overflow-hidden">
+          <div className="flex flex-col gap-3 overflow-y-auto rounded-xl border bg-muted/20 p-3">
+            <p className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Steps &middot; {orderedSteps.length}
+            </p>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={(e) => void handleDragEnd(e)}
+            >
               <SortableContext
                 items={orderedSteps.map((s) => s.id)}
                 strategy={verticalListSortingStrategy}
@@ -139,18 +146,20 @@ export function TourEditorPage() {
               </SortableContext>
             </DndContext>
             {orderedSteps.length === 0 && (
-              <p className="text-sm text-muted-foreground">No steps yet.</p>
+              <p className="px-1 text-sm text-muted-foreground">No steps yet.</p>
             )}
             <AddStepMenu onAdd={(stepType) => void handleAddStep(stepType)} />
           </div>
 
-          <div className="overflow-y-auto rounded-md border p-4">
+          <div className="overflow-y-auto rounded-xl border bg-card p-6 shadow-sm">
             {selectedStep ? (
               <StepPropertiesPanel key={selectedStep.id} step={selectedStep} onSaved={() => {}} />
             ) : (
-              <p className="text-sm text-muted-foreground">
-                Select a step to edit its properties, or add a new one.
-              </p>
+              <div className="flex h-full items-center justify-center text-center">
+                <p className="text-sm text-muted-foreground">
+                  Select a step to edit its properties, or add a new one.
+                </p>
+              </div>
             )}
           </div>
         </div>

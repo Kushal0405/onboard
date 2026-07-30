@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Redo2, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,7 +18,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { updateStep } from "@/features/editor/api/stepQueries";
 import { ButtonListEditor } from "@/features/editor/components/ButtonListEditor";
 import { ChecklistItemsEditor } from "@/features/editor/components/ChecklistItemsEditor";
+import { TargetSelectorField } from "@/features/editor/components/TargetSelectorField";
 import { useAutosaveStep, type AutosaveStatus } from "@/features/editor/hooks/useAutosaveStep";
+import { useStepHistory } from "@/features/editor/hooks/useStepHistory";
 import { parseStepContent } from "@/features/editor/utils/parseStepContent";
 import {
   STEP_TYPE_LABELS,
@@ -44,6 +48,13 @@ function AutosaveIndicator({ status }: { status: AutosaveStatus }) {
   );
 }
 
+interface HistorySnapshot {
+  title: string;
+  stepType: StepType;
+  content: StepContent;
+  targetSelector: string;
+}
+
 interface StepPropertiesPanelProps {
   step: Step;
   onSaved: () => void;
@@ -53,23 +64,65 @@ export function StepPropertiesPanel({ step, onSaved }: StepPropertiesPanelProps)
   const [title, setTitle] = useState(step.title ?? "");
   const [stepType, setStepType] = useState<StepType>(step.step_type);
   const [content, setContent] = useState<StepContent>(() => parseStepContent(step.content));
+  const [targetSelector, setTargetSelector] = useState(step.target_selector ?? "");
   const { status, scheduleSave } = useAutosaveStep(step, onSaved);
 
   useEffect(() => {
     setTitle(step.title ?? "");
     setStepType(step.step_type);
     setContent(parseStepContent(step.content));
-  }, [step.id, step.title, step.step_type, step.content]);
+    setTargetSelector(step.target_selector ?? "");
+  }, [step.id, step.title, step.step_type, step.content, step.target_selector]);
 
-  function update(next: Partial<StepContent>, nextTitle = title) {
+  const historySnapshot = useMemo<HistorySnapshot>(
+    () => ({ title, stepType, content, targetSelector }),
+    [title, stepType, content, targetSelector],
+  );
+  const { canUndo, canRedo, undo, redo } = useStepHistory(step.id, historySnapshot);
+
+  function applySnapshot(snapshot: HistorySnapshot) {
+    setTitle(snapshot.title);
+    setContent(snapshot.content);
+    setTargetSelector(snapshot.targetSelector);
+    scheduleSave(snapshot.title, snapshot.content, snapshot.targetSelector);
+    if (snapshot.stepType !== stepType) {
+      setStepType(snapshot.stepType);
+      void updateStep({ id: step.id, stepType: snapshot.stepType }).then(onSaved);
+    }
+  }
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const isMod = e.metaKey || e.ctrlKey;
+      if (!isMod || e.key.toLowerCase() !== "z") return;
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
+      e.preventDefault();
+      if (e.shiftKey) {
+        redo(applySnapshot);
+      } else {
+        undo(applySnapshot);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [undo, redo]);
+
+  function update(next: Partial<StepContent>, nextTitle = title, nextSelector = targetSelector) {
     const merged = { ...content, ...next };
     setContent(merged);
-    scheduleSave(nextTitle, merged);
+    scheduleSave(nextTitle, merged, nextSelector);
   }
 
   function handleTitleChange(value: string) {
     setTitle(value);
-    scheduleSave(value, content);
+    scheduleSave(value, content, targetSelector);
+  }
+
+  function handleTargetSelectorChange(value: string) {
+    setTargetSelector(value);
+    scheduleSave(title, content, value);
   }
 
   async function handleStepTypeChange(nextType: StepType) {
@@ -89,7 +142,31 @@ export function StepPropertiesPanel({ step, onSaved }: StepPropertiesPanelProps)
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Properties</h3>
-        <AutosaveIndicator status={status} />
+        <div className="flex items-center gap-2">
+          <AutosaveIndicator status={status} />
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              aria-label="Undo"
+              disabled={!canUndo}
+              onClick={() => undo(applySnapshot)}
+            >
+              <Undo2 className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              aria-label="Redo"
+              disabled={!canRedo}
+              onClick={() => redo(applySnapshot)}
+            >
+              <Redo2 className="size-3.5" />
+            </Button>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -167,6 +244,8 @@ export function StepPropertiesPanel({ step, onSaved }: StepPropertiesPanelProps)
 
       {showTargeting && (
         <div className="space-y-4">
+          <TargetSelectorField value={targetSelector} onChange={handleTargetSelectorChange} />
+
           <div className="space-y-2">
             <Label>Placement</Label>
             <Select

@@ -7,10 +7,16 @@ export type AutosaveStatus = "idle" | "saving" | "saved" | "error";
 
 const AUTOSAVE_DELAY_MS = 800;
 
+interface AutosavePayload {
+  title: string;
+  content: StepContent;
+  targetSelector: string;
+}
+
 export function useAutosaveStep(step: Step | null, onSaved: () => void) {
   const [status, setStatus] = useState<AutosaveStatus>("idle");
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const latestPayloadRef = useRef<{ title: string; content: StepContent } | null>(null);
+  const latestPayloadRef = useRef<AutosavePayload | null>(null);
 
   useEffect(() => {
     setStatus("idle");
@@ -18,16 +24,21 @@ export function useAutosaveStep(step: Step | null, onSaved: () => void) {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
   }, [step?.id]);
 
-  function scheduleSave(title: string, content: StepContent) {
+  function scheduleSave(title: string, content: StepContent, targetSelector: string) {
     if (!step) return;
-    latestPayloadRef.current = { title, content };
+    latestPayloadRef.current = { title, content, targetSelector };
     setStatus("saving");
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       const payload = latestPayloadRef.current;
       if (!payload) return;
-      updateStep({ id: step.id, title: payload.title || null, content: payload.content })
+      updateStep({
+        id: step.id,
+        title: payload.title || null,
+        content: payload.content,
+        targetSelector: payload.targetSelector || null,
+      })
         .then(() => {
           setStatus("saved");
           onSaved();
