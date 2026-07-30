@@ -44,8 +44,8 @@ Supabase project: `https://udsmmrdkevrwiicphhbp.supabase.co` (ref: `udsmmrdkevrw
 | 3 | Authentication (email, Google, GitHub, protected routes, password reset) | ✅ Done | Login/signup/forgot-password/reset-password/OAuth-callback pages, RequireAuth-gated dashboard route, logout. Google OAuth enabled in Supabase dashboard by user; GitHub OAuth still needs dashboard setup |
 | 4 | Database (beyond Phase 2 base schema, if needed) | ✅ Skipped | No gaps found; Phase 2's schema covers everything so far. Revisit only if a later phase needs new tables/columns |
 | 5 | Dashboard | ✅ Done | Workspace switcher, sidebar nav, empty-state home page — see below |
-| 6 | Projects (CRUD, search, pagination, duplicate) | 🟡 Mostly done | Create/Delete/Search/Pagination shipped; Duplicate deferred to Phase 7 (more meaningful once tours exist to clone) |
-| 7 | Tour Builder (create/delete/duplicate, draft/published/archived, undo/redo, autosave, version history) | ⬜ Not started | |
+| 6 | Projects (CRUD, search, pagination, duplicate) | ✅ Done | Duplicate shipped in Phase 7 alongside tour duplication |
+| 7 | Tour Builder (create/delete/duplicate, draft/published/archived, undo/redo, autosave, version history) | 🟡 Mostly done | Tour list + lifecycle + version history shipped; Undo/redo and autosave deferred to Phase 8 (apply to step-editor content, which doesn't exist until then) |
 | 8 | Visual Editor (steps, drag/reorder, properties panel, placement, element picker) | ⬜ Not started | |
 | 9 | SDK (init/identify/track/start/stop/show/hide/destroy/updateUser, CDN + npm) | ⬜ Not started | |
 | 10 | Analytics (event tracking, dashboards, charts, filtering) | ⬜ Not started | |
@@ -68,7 +68,18 @@ Vite + React + TS scaffold, Tailwind + shadcn/ui init (New York/Zinc), ESLint fl
 - **OAuth dashboard setup**: Google provider enabled by user in Supabase Dashboard → Authentication → Providers. GitHub still needs the same treatment (create a GitHub OAuth App, add Client ID/Secret in the Supabase dashboard, callback URL `https://udsmmrdkevrwiicphhbp.supabase.co/auth/v1/callback`) before the GitHub button will work — the code path is already wired and doesn't need changes once that's done.
 - Password reset flow: `ForgotPasswordPage` calls `resetPasswordForEmail` (redirects to `/reset-password`); Supabase auto-establishes a recovery session from the emailed link, and `ResetPasswordPage` calls `updateUser({ password })`.
 
-## Phase 6 — Projects (mostly done; Duplicate deferred)
+## Phase 7 — Tour Builder (mostly done; undo/redo/autosave deferred)
+
+- `src/features/tours/api/tourQueries.ts` — `fetchToursForProject`, `createTour` (also inserts the initial `tour_versions` row, version 1, unpublished), `deleteTour`, `duplicateTour` (clones the tour row + creates a fresh version 1 + clones all `steps` from the source tour's latest version), `archiveTour`, `restoreTourToDraft`, `publishTourLatestVersion` (marks the latest `tour_versions` row published, sets `tours.status = 'published'` and `tours.published_version_id`), `fetchTourVersions`.
+- `hooks/useTours.ts`, `useTourMutations.ts` (create/remove/duplicate/archive/restoreToDraft/publish), `useTourVersions.ts` — TanStack Query, invalidate the `tours` list on any mutation.
+- `components/TourStatusBadge.tsx` (draft/published/archived), `TourActionsMenu.tsx` (publish/archive/restore/duplicate/version-history/delete dropdown), `CreateTourDialog.tsx`, `DeleteTourDialog.tsx`, `VersionHistoryDialog.tsx`.
+- `src/components/ui/badge.tsx` — added (standard shadcn badge, wasn't needed until status pills).
+- `src/features/projects/pages/ProjectDetailPage.tsx` (route `/dashboard/projects/:projectId`) — lists tours for a project; `ProjectsPage` cards now link here.
+- `src/features/projects/api/projectQueries.ts` gained `fetchProjectById` + `hooks/useProject.ts` for the detail page header.
+- Verified end-to-end against live Supabase: create → add a step → publish → duplicate (confirmed step cloning) → archive → restore → version history → delete (confirmed cascade deletes cloned steps).
+- **Deferred to Phase 8**: undo/redo and autosave apply to step-editor content, which doesn't exist until the visual editor is built — building them now against nothing would be premature. Duplicate's step-cloning logic (built here) already gives Phase 8 something real to extend.
+
+## Phase 6 — Projects (done — includes tour duplication's step-cloning support)
 
 - `src/features/projects/api/projectQueries.ts` — `fetchProjects` (paginated, `count: "exact"`, optional `ilike` name search, page size 12), `createProject` (slugifies the name, retries with a numeric suffix on `23505` unique-violation), `deleteProject`.
 - `hooks/useProjects.ts`, `useCreateProject.ts`, `useDeleteProject.ts` — TanStack Query wrappers; create/delete invalidate both the `projects` list and the dashboard's `project-count` query key.

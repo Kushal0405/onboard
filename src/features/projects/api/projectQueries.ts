@@ -101,3 +101,14 @@ export async function deleteProject(projectId: string): Promise<void> {
   const { error } = await supabase.from("projects").delete().eq("id", projectId);
   if (error) throw error;
 }
+
+export async function fetchProjectById(projectId: string): Promise<Project | null> {
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("id", projectId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}

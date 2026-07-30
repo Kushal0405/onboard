@@ -11,6 +11,7 @@ import { ResetPasswordPage } from "@/features/auth/pages/ResetPasswordPage";
 import { AuthCallbackPage } from "@/features/auth/pages/AuthCallbackPage";
 import { DashboardHomePage } from "@/features/dashboard/pages/DashboardHomePage";
 import { ProjectsPage } from "@/features/projects/pages/ProjectsPage";
+import { ProjectDetailPage } from "@/features/projects/pages/ProjectDetailPage";
 import { AnalyticsPage } from "@/features/analytics/pages/AnalyticsPage";
 import { SettingsPage } from "@/features/settings/pages/SettingsPage";
 
@@ -41,6 +42,7 @@ export const router = createBrowserRouter([
             children: [
               { path: "dashboard", element: <DashboardHomePage /> },
               { path: "dashboard/projects", element: <ProjectsPage /> },
+              { path: "dashboard/projects/:projectId", element: <ProjectDetailPage /> },
               { path: "dashboard/analytics", element: <AnalyticsPage /> },
               { path: "dashboard/settings", element: <SettingsPage /> },
             ],

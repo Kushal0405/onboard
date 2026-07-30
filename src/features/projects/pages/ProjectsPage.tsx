@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, FolderKanban, Search, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -77,23 +78,23 @@ export function ProjectsPage() {
           <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 ${isFetching ? "opacity-60" : ""}`}>
             {data.projects.map((project) => (
               <Card key={project.id} className="group relative">
-                <CardHeader>
-                  <CardTitle className="pr-8">{project.name}</CardTitle>
-                  {project.description && (
-                    <CardDescription>{project.description}</CardDescription>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-3 top-3 opacity-0 transition-opacity group-hover:opacity-100"
-                    aria-label={`Delete ${project.name}`}
-                    onClick={() => setProjectToDelete(project)}
-                  >
-                    <Trash2 className="size-4 text-destructive" />
-                  </Button>
-                </CardContent>
+                <Link to={`/dashboard/projects/${project.id}`} className="block">
+                  <CardHeader>
+                    <CardTitle className="pr-8">{project.name}</CardTitle>
+                    {project.description && (
+                      <CardDescription>{project.description}</CardDescription>
+                    )}
+                  </CardHeader>
+                </Link>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-3 top-3 opacity-0 transition-opacity group-hover:opacity-100"
+                  aria-label={`Delete ${project.name}`}
+                  onClick={() => setProjectToDelete(project)}
+                >
+                  <Trash2 className="size-4 text-destructive" />
+                </Button>
               </Card>
             ))}
           </div>
