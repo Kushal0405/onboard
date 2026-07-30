@@ -44,7 +44,7 @@ Supabase project: `https://udsmmrdkevrwiicphhbp.supabase.co` (ref: `udsmmrdkevrw
 | 3 | Authentication (email, Google, GitHub, protected routes, password reset) | ✅ Done | Login/signup/forgot-password/reset-password/OAuth-callback pages, RequireAuth-gated dashboard route, logout. Google OAuth enabled in Supabase dashboard by user; GitHub OAuth still needs dashboard setup |
 | 4 | Database (beyond Phase 2 base schema, if needed) | ✅ Skipped | No gaps found; Phase 2's schema covers everything so far. Revisit only if a later phase needs new tables/columns |
 | 5 | Dashboard | ✅ Done | Workspace switcher, sidebar nav, empty-state home page — see below |
-| 6 | Projects (CRUD, search, pagination, duplicate) | ⬜ Not started | |
+| 6 | Projects (CRUD, search, pagination, duplicate) | 🟡 Mostly done | Create/Delete/Search/Pagination shipped; Duplicate deferred to Phase 7 (more meaningful once tours exist to clone) |
 | 7 | Tour Builder (create/delete/duplicate, draft/published/archived, undo/redo, autosave, version history) | ⬜ Not started | |
 | 8 | Visual Editor (steps, drag/reorder, properties panel, placement, element picker) | ⬜ Not started | |
 | 9 | SDK (init/identify/track/start/stop/show/hide/destroy/updateUser, CDN + npm) | ⬜ Not started | |
@@ -67,6 +67,15 @@ Vite + React + TS scaffold, Tailwind + shadcn/ui init (New York/Zinc), ESLint fl
 - `DashboardLayout` now shows the signed-in user's email and a sign-out button (calls `authService.signOut()`).
 - **OAuth dashboard setup**: Google provider enabled by user in Supabase Dashboard → Authentication → Providers. GitHub still needs the same treatment (create a GitHub OAuth App, add Client ID/Secret in the Supabase dashboard, callback URL `https://udsmmrdkevrwiicphhbp.supabase.co/auth/v1/callback`) before the GitHub button will work — the code path is already wired and doesn't need changes once that's done.
 - Password reset flow: `ForgotPasswordPage` calls `resetPasswordForEmail` (redirects to `/reset-password`); Supabase auto-establishes a recovery session from the emailed link, and `ResetPasswordPage` calls `updateUser({ password })`.
+
+## Phase 6 — Projects (mostly done; Duplicate deferred)
+
+- `src/features/projects/api/projectQueries.ts` — `fetchProjects` (paginated, `count: "exact"`, optional `ilike` name search, page size 12), `createProject` (slugifies the name, retries with a numeric suffix on `23505` unique-violation), `deleteProject`.
+- `hooks/useProjects.ts`, `useCreateProject.ts`, `useDeleteProject.ts` — TanStack Query wrappers; create/delete invalidate both the `projects` list and the dashboard's `project-count` query key.
+- `components/CreateProjectDialog.tsx`, `DeleteProjectDialog.tsx` — shadcn `Dialog`-based forms; delete requires explicit confirmation and warns that tours/analytics under the project are also removed (cascade is enforced at the DB level via `on delete cascade`).
+- `pages/ProjectsPage.tsx` — debounced search (`src/hooks/useDebouncedValue.ts`, 300ms), paginated grid, empty states for "no projects" vs "no search matches".
+- Verified end-to-end against live Supabase: create (incl. slug-collision retry), list, search filter, delete, and count all confirmed working under RLS with a real signed-in session.
+- **Duplicate deferred to Phase 7**: cloning an empty project isn't meaningful yet; will be added once tours exist so duplicate can also clone a project's tours.
 
 ## Phase 5 — Dashboard (done)
 
