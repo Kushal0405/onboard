@@ -118,7 +118,7 @@ export function StepOverlayPreview({
         />
       )}
       <div
-        className="absolute z-20 w-80 rounded-lg border bg-white p-4 text-sm text-zinc-900 shadow-2xl transition-all duration-150"
+        className="absolute z-20 w-80 overflow-hidden rounded-lg border bg-white p-4 text-sm text-zinc-900 shadow-2xl transition-all duration-150"
         style={{
           top: position.top,
           left: position.left,
@@ -142,8 +142,10 @@ export function StepOverlayPreview({
           </div>
         )}
 
-        <p className="pr-4 font-semibold">{title || "Untitled step"}</p>
-        {content.body && <p className="mt-1 whitespace-pre-wrap text-zinc-600">{content.body}</p>}
+        <p className="break-words pr-4 font-semibold">{title || "Untitled step"}</p>
+        {content.body && (
+          <p className="mt-1 whitespace-pre-wrap break-words text-zinc-600">{content.body}</p>
+        )}
 
         {stepType === "checklist" && content.checklistItems.length > 0 && (
           <ul className="mt-3 space-y-1.5">

@@ -20,6 +20,7 @@ export const CSS = `
   font-size: 14px;
   line-height: 1.45;
   box-sizing: border-box;
+  overflow: hidden;
 }
 .onboardflow-card--fade { animation: onboardflow-fade 200ms ease-out; }
 .onboardflow-card--slide { animation: onboardflow-slide 220ms ease-out; }
@@ -43,11 +44,15 @@ export const CSS = `
 .onboardflow-title {
   font-weight: 600;
   margin: 0 24px 4px 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .onboardflow-body {
   color: #374151;
   margin: 0;
   white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .onboardflow-progress {
   display: flex;
@@ -80,7 +85,7 @@ export const CSS = `
 .onboardflow-button--secondary { background: #fff; color: #111827; border-color: #d1d5db; }
 
 .onboardflow-checklist { list-style: none; margin: 8px 0 0; padding: 0; }
-.onboardflow-checklist-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+.onboardflow-checklist-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; overflow-wrap: break-word; word-break: break-word; }
 .onboardflow-checklist-dot { width: 14px; height: 14px; border-radius: 999px; border: 1.5px solid #9ca3af; flex-shrink: 0; }
 
 .onboardflow-highlight {
@@ -107,7 +112,9 @@ export const CSS = `
   padding: 12px 16px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 14px;
+  overflow: hidden;
 }
+.onboardflow-banner > span { overflow-wrap: break-word; word-break: break-word; min-width: 0; }
 
 .onboardflow-beacon {
   position: fixed;
