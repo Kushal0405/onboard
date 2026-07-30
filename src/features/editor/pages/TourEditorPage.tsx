@@ -15,8 +15,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTour, useLatestTourVersion } from "@/features/tours/hooks/useTour";
+import { useTourMutations } from "@/features/tours/hooks/useTourMutations";
 import { TourStatusBadge } from "@/features/tours/components/TourStatusBadge";
 import { AddStepMenu } from "@/features/editor/components/AddStepMenu";
+import { EditorBottomBar } from "@/features/editor/components/EditorBottomBar";
 import { EditorCanvas } from "@/features/editor/components/EditorCanvas";
 import { SortableStepChip } from "@/features/editor/components/SortableStepChip";
 import { StepPropertiesPanel } from "@/features/editor/components/StepPropertiesPanel";
@@ -35,10 +37,12 @@ export function TourEditorPage() {
 
   const { data: steps, isLoading: isStepsLoading } = useSteps(tourVersionId);
   const { create, remove, reorder } = useStepMutations(tourVersionId);
+  const { publish } = useTourMutations(tour?.project_id);
 
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
   const [orderedSteps, setOrderedSteps] = useState<Step[]>([]);
   const [pickRequestToken, setPickRequestToken] = useState(0);
+  const [previewMode, setPreviewMode] = useState(false);
   const [liveEdit, setLiveEdit] = useState<{
     title: string;
     stepType: StepType;
@@ -100,6 +104,16 @@ export function TourEditorPage() {
     }
   }
 
+  async function handlePublish() {
+    if (!tourId) return;
+    try {
+      await publish.mutateAsync(tourId);
+      toast.success("Tour published");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to publish tour");
+    }
+  }
+
   const selectedStepIndex = orderedSteps.findIndex((s) => s.id === selectedStepId);
   const selectedStep = selectedStepIndex >= 0 ? orderedSteps[selectedStepIndex]! : null;
   const isLoading = isTourLoading || isVersionLoading || isStepsLoading;
@@ -127,6 +141,11 @@ export function TourEditorPage() {
           {isTourLoading ? <Skeleton className="h-4 w-32 bg-zinc-800" /> : tour?.name}
         </h1>
         {tour && <TourStatusBadge status={tour.status} />}
+        {previewMode && (
+          <span className="ml-auto rounded-full bg-indigo-500/15 px-2.5 py-1 text-xs font-medium text-indigo-400">
+            Previewing
+          </span>
+        )}
       </div>
 
       {isLoading ? (
@@ -135,34 +154,42 @@ export function TourEditorPage() {
         </div>
       ) : (
         <>
-          <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-zinc-800 bg-zinc-900/50 px-4 py-2">
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={(e) => void handleDragEnd(e)}
-            >
-              <SortableContext
-                items={orderedSteps.map((s) => s.id)}
-                strategy={horizontalListSortingStrategy}
+          {!previewMode && (
+            <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-zinc-800 bg-zinc-900/50 px-4 py-2">
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={(e) => void handleDragEnd(e)}
               >
-                <div className="flex items-center gap-2">
-                  {orderedSteps.map((step, index) => (
-                    <SortableStepChip
-                      key={step.id}
-                      step={step}
-                      index={index}
-                      isSelected={step.id === selectedStepId}
-                      onSelect={() => setSelectedStepId(step.id)}
-                      onDelete={() => void handleDeleteStep(step)}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-            <AddStepMenu onAdd={(stepType) => void handleAddStep(stepType)} />
-          </div>
+                <SortableContext
+                  items={orderedSteps.map((s) => s.id)}
+                  strategy={horizontalListSortingStrategy}
+                >
+                  <div className="flex items-center gap-2">
+                    {orderedSteps.map((step, index) => (
+                      <SortableStepChip
+                        key={step.id}
+                        step={step}
+                        index={index}
+                        isSelected={step.id === selectedStepId}
+                        onSelect={() => setSelectedStepId(step.id)}
+                        onDelete={() => void handleDeleteStep(step)}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+              <AddStepMenu onAdd={(stepType) => void handleAddStep(stepType)} />
+            </div>
+          )}
 
-          <div className="grid flex-1 grid-cols-[1fr_340px] overflow-hidden">
+          <div
+            className={
+              previewMode
+                ? "flex-1 overflow-hidden"
+                : "grid flex-1 grid-cols-[1fr_340px] overflow-hidden"
+            }
+          >
             <EditorCanvas
               step={canvasStep}
               stepIndex={selectedStepIndex >= 0 ? selectedStepIndex : 0}
@@ -179,26 +206,43 @@ export function TourEditorPage() {
                 void updateStep({ id: selectedStep.id, targetSelector: selector });
               }}
               pickRequestToken={pickRequestToken}
+              previewMode={previewMode}
             />
 
-            <div className="overflow-hidden border-l border-zinc-800">
-              {selectedStep ? (
-                <StepPropertiesPanel
-                  key={selectedStep.id}
-                  step={selectedStep}
-                  onSaved={() => {}}
-                  onRequestPick={() => setPickRequestToken((t) => t + 1)}
-                  onLiveChange={setLiveEdit}
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center p-6 text-center">
-                  <p className="text-sm text-zinc-500">
-                    Select a step to edit its properties, or add a new one.
-                  </p>
-                </div>
-              )}
-            </div>
+            {!previewMode && (
+              <div className="overflow-hidden border-l border-zinc-800">
+                {selectedStep ? (
+                  <StepPropertiesPanel
+                    key={selectedStep.id}
+                    step={selectedStep}
+                    onSaved={() => {}}
+                    onRequestPick={() => setPickRequestToken((t) => t + 1)}
+                    onLiveChange={setLiveEdit}
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center p-6 text-center">
+                    <p className="text-sm text-zinc-500">
+                      Select a step to edit its properties, or add a new one.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
+
+          <EditorBottomBar
+            stepIndex={selectedStepIndex >= 0 ? selectedStepIndex : 0}
+            totalSteps={orderedSteps.length}
+            onSelectIndex={(index) => {
+              const step = orderedSteps[index];
+              if (step) setSelectedStepId(step.id);
+            }}
+            onPreview={() => setPreviewMode((v) => !v)}
+            isPreviewing={previewMode}
+            onPublish={() => void handlePublish()}
+            isPublishing={publish.isPending}
+            isPublished={tour?.status === "published"}
+          />
         </>
       )}
     </div>

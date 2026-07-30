@@ -15,6 +15,8 @@ interface StepOverlayPreviewProps {
   canvasSize: { width: number; height: number };
   hasTargetSelector: boolean;
   snippetDetected: boolean;
+  /** Suppresses editor-only guidance banners (no selector / snippet missing) when in Preview mode. */
+  hideEditorChrome?: boolean;
 }
 
 const CARD_WIDTH = 320;
@@ -50,13 +52,14 @@ export function StepOverlayPreview({
   canvasSize,
   hasTargetSelector,
   snippetDetected,
+  hideEditorChrome = false,
 }: StepOverlayPreviewProps) {
   const isCentered = CENTERED_STEP_TYPES.includes(stepType) || content.placement === "center";
   const isBanner = stepType === "banner";
   const needsTarget = !isCentered && !isBanner;
   const cannotLocate = needsTarget && hasTargetSelector && !targetRect;
 
-  if (needsTarget && !hasTargetSelector) {
+  if (!hideEditorChrome && needsTarget && !hasTargetSelector) {
     return (
       <div className="pointer-events-none absolute left-1/2 top-4 z-20 -translate-x-1/2 rounded-md bg-amber-500/90 px-3 py-1.5 text-xs font-medium text-amber-950 shadow-lg">
         No target element set — use &ldquo;Pick element&rdquo; or paste a selector in the panel.
@@ -64,13 +67,21 @@ export function StepOverlayPreview({
     );
   }
 
-  if (needsTarget && !snippetDetected) {
+  if (!hideEditorChrome && needsTarget && !snippetDetected) {
     return (
       <div className="pointer-events-none absolute left-1/2 top-4 z-20 -translate-x-1/2 rounded-md bg-amber-500/90 px-3 py-1.5 text-xs font-medium text-amber-950 shadow-lg">
         This page hasn&apos;t loaded the OnboardFlow snippet, so the step can&apos;t be positioned
         here. Install it, then reload the page.
       </div>
     );
+  }
+
+  if (needsTarget && (!hasTargetSelector || !snippetDetected) && hideEditorChrome) {
+    // In preview mode we don't show the editor guidance banners, but we
+    // also shouldn't render a fake centered card for a step that has no
+    // real target — that would misrepresent what an end user actually
+    // sees. Render nothing instead.
+    return null;
   }
 
   if (cannotLocate) {

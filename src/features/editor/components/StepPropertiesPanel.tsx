@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { updateStep } from "@/features/editor/api/stepQueries";
 import { ButtonListEditor } from "@/features/editor/components/ButtonListEditor";
@@ -185,86 +186,112 @@ export function StepPropertiesPanel({
         </div>
       </div>
 
-      <div className="flex-1 space-y-6 overflow-y-auto px-4 py-4">
-        <div className="space-y-3">
-          <SectionLabel>Content</SectionLabel>
-          <div className="space-y-2">
-            <Label>Step type</Label>
-            <Select value={stepType} onValueChange={(value: StepType) => void handleStepTypeChange(value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {STEP_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {STEP_TYPE_LABELS[type]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="step-title">Title</Label>
-            <Input
-              id="step-title"
-              value={title}
-              onChange={(e) => handleTitleChange(e.target.value)}
-              placeholder="Step title"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="step-body">Body</Label>
-            <Textarea
-              id="step-body"
-              value={content.body}
-              onChange={(e) => update({ body: e.target.value })}
-              placeholder="What should users see in this step?"
-              rows={4}
-            />
-          </div>
-
-          {stepType === "checklist" && (
-            <ChecklistItemsEditor
-              items={content.checklistItems}
-              onChange={(checklistItems) => update({ checklistItems })}
-            />
-          )}
-
-          {stepType === "confirmation" && (
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-2">
-                <Label htmlFor="confirm-label">Confirm label</Label>
-                <Input
-                  id="confirm-label"
-                  value={content.confirmLabel}
-                  onChange={(e) => update({ confirmLabel: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cancel-label">Cancel label</Label>
-                <Input
-                  id="cancel-label"
-                  value={content.cancelLabel}
-                  onChange={(e) => update({ cancelLabel: e.target.value })}
-                />
-              </div>
-            </div>
-          )}
+      <Tabs defaultValue="settings" className="flex flex-1 flex-col overflow-hidden">
+        <div className="border-b border-zinc-800 px-4 pt-3">
+          <TabsList className="w-full bg-zinc-800">
+            <TabsTrigger value="settings" className="flex-1 data-[state=active]:bg-zinc-950">
+              Settings
+            </TabsTrigger>
+            <TabsTrigger value="design" className="flex-1 data-[state=active]:bg-zinc-950">
+              Design
+            </TabsTrigger>
+          </TabsList>
         </div>
 
-        {showTargeting && (
-          <>
-            <Separator className="bg-zinc-800" />
+        <TabsContent value="settings" className="mt-0 flex-1 space-y-6 overflow-y-auto px-4 py-4">
+          <div className="space-y-3">
+            <SectionLabel>Content</SectionLabel>
+            <div className="space-y-2">
+              <Label>Step type</Label>
+              <Select value={stepType} onValueChange={(value: StepType) => void handleStepTypeChange(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STEP_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {STEP_TYPE_LABELS[type]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="step-title">Title</Label>
+              <Input
+                id="step-title"
+                value={title}
+                onChange={(e) => handleTitleChange(e.target.value)}
+                placeholder="Step title"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="step-body">Body</Label>
+              <Textarea
+                id="step-body"
+                value={content.body}
+                onChange={(e) => update({ body: e.target.value })}
+                placeholder="What should users see in this step?"
+                rows={4}
+              />
+            </div>
+
+            {stepType === "checklist" && (
+              <ChecklistItemsEditor
+                items={content.checklistItems}
+                onChange={(checklistItems) => update({ checklistItems })}
+              />
+            )}
+
+            {stepType === "confirmation" && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-label">Confirm label</Label>
+                  <Input
+                    id="confirm-label"
+                    value={content.confirmLabel}
+                    onChange={(e) => update({ confirmLabel: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cancel-label">Cancel label</Label>
+                  <Input
+                    id="cancel-label"
+                    value={content.cancelLabel}
+                    onChange={(e) => update({ cancelLabel: e.target.value })}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {showTargeting && (
+            <>
+              <Separator className="bg-zinc-800" />
+              <div className="space-y-3">
+                <SectionLabel>Target</SectionLabel>
+                <TargetSelectorField
+                  value={targetSelector}
+                  onChange={handleTargetSelectorChange}
+                  onRequestPick={onRequestPick}
+                />
+              </div>
+            </>
+          )}
+
+          <Separator className="bg-zinc-800" />
+          <div className="space-y-3">
+            <SectionLabel>Buttons</SectionLabel>
+            <ButtonListEditor buttons={content.buttons} onChange={(buttons) => update({ buttons })} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="design" className="mt-0 flex-1 space-y-6 overflow-y-auto px-4 py-4">
+          {showTargeting && (
             <div className="space-y-3">
               <SectionLabel>Placement</SectionLabel>
-              <TargetSelectorField
-                value={targetSelector}
-                onChange={handleTargetSelectorChange}
-                onRequestPick={onRequestPick}
-              />
-
               <div className="space-y-2">
                 <Label>Position</Label>
                 <Select
@@ -309,60 +336,55 @@ export function StepPropertiesPanel({
                 </div>
               </div>
             </div>
-          </>
-        )}
+          )}
 
-        <Separator className="bg-zinc-800" />
-        <div className="space-y-3">
-          <SectionLabel>Style</SectionLabel>
-          <div className="space-y-2">
-            <Label htmlFor="overlay-opacity">Overlay opacity</Label>
-            <Input
-              id="overlay-opacity"
-              type="number"
-              min={0}
-              max={1}
-              step={0.05}
-              value={content.overlayOpacity}
-              onChange={(e) => update({ overlayOpacity: Number(e.target.value) })}
-            />
+          {showTargeting && <Separator className="bg-zinc-800" />}
+
+          <div className="space-y-3">
+            <SectionLabel>Style</SectionLabel>
+            <div className="space-y-2">
+              <Label htmlFor="overlay-opacity">Overlay opacity</Label>
+              <Input
+                id="overlay-opacity"
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={content.overlayOpacity}
+                onChange={(e) => update({ overlayOpacity: Number(e.target.value) })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Animation</Label>
+              <Select
+                value={content.animation}
+                onValueChange={(value: StepAnimation) => update({ animation: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ANIMATIONS.map((animation) => (
+                    <SelectItem key={animation} value={animation}>
+                      {animation.charAt(0).toUpperCase() + animation.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="step-progress">Show progress indicator</Label>
+              <Switch
+                id="step-progress"
+                checked={content.showProgress}
+                onCheckedChange={(checked) => update({ showProgress: checked })}
+              />
+            </div>
           </div>
-
-          <div className="space-y-2">
-            <Label>Animation</Label>
-            <Select
-              value={content.animation}
-              onValueChange={(value: StepAnimation) => update({ animation: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ANIMATIONS.map((animation) => (
-                  <SelectItem key={animation} value={animation}>
-                    {animation.charAt(0).toUpperCase() + animation.slice(1)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <Label htmlFor="step-progress">Show progress indicator</Label>
-            <Switch
-              id="step-progress"
-              checked={content.showProgress}
-              onCheckedChange={(checked) => update({ showProgress: checked })}
-            />
-          </div>
-        </div>
-
-        <Separator className="bg-zinc-800" />
-        <div className="space-y-3">
-          <SectionLabel>Buttons</SectionLabel>
-          <ButtonListEditor buttons={content.buttons} onChange={(buttons) => update({ buttons })} />
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

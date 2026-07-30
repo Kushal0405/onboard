@@ -77,6 +77,16 @@ Vite + React + TS scaffold, Tailwind + shadcn/ui init (New York/Zinc), ESLint fl
 - `sdk/README.md` updated: corrected the stale claim that `track()` "just logs" (9b wired real delivery), added a Framework examples section linking each file.
 - No SDK runtime code changed in this pass — purely documentation/packaging, so no new live-Supabase verification was needed beyond the existing typecheck/lint/build pass.
 
+## Editor bottom-toolbar redesign (done, second UI pass following user-shared Userpilot screenshots)
+
+A further redesign pass after the user shared 4 screenshots of Userpilot's actual editor. Note: I have no browser/internet access in this environment and could not fetch a linked YouTube playlist or any other external reference — everything here is built strictly from what was visible in the shared screenshots.
+
+- `components/EditorBottomBar.tsx` — new bottom toolbar (step-index `Select` with prev/next chevrons on the left, Preview + Publish buttons on the right), replacing the old top step-count label. Publish wires to the real `useTourMutations().publish` mutation (already existed from Phase 7) and disables once `tour.status === "published"`.
+- `components/AddStepMenu.tsx` reworked from a plain text dropdown into a rich card-style popover (icon in a colored square, title, one-line description per step type) matching the reference's "Modal / Slideout / Tooltip / Driven Action" picker. Added `STEP_TYPE_DESCRIPTIONS` to `types.ts`.
+- `components/StepPropertiesPanel.tsx` split into **Settings** (step type, title, body, type-specific fields, target selector, buttons) and **Design** (placement, highlight padding, border radius, overlay opacity, animation, progress toggle) tabs using the existing `Tabs` primitive, matching the reference's Settings/Design split.
+- **Preview mode**: the bottom bar's Preview button toggles `previewMode` in `TourEditorPage`, which hides the step-chip strip and properties panel, gives the canvas the full width, and tells `EditorCanvas`/`StepOverlayPreview` to hide editor-only chrome (URL bar, install-status pill, pick-element button, guidance banners) via a `previewMode`/`hideEditorChrome` prop — deliberately renders nothing (not a fake centered card) for a step with no real resolvable target while previewing, since fabricating a position would misrepresent what an end user actually sees.
+- `TourEditorPage.tsx` reassembled around these pieces; the old inline "Steps · N" label was removed since the bottom bar's step selector now serves that purpose.
+
 ## Editor redesign + install-verification flow (done, cross-cutting — touches Phase 8 and Phase 9 areas)
 
 Done as a follow-up pass after user feedback that the Phase 8 editor "looked like a form, not an editor" and should match Userpilot's UX: the target site rendered live, with the step positioned over the real DOM.

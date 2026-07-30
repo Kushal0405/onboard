@@ -17,6 +17,7 @@ interface EditorCanvasProps {
   totalSteps: number;
   onPick: (selector: string) => void;
   pickRequestToken: number;
+  previewMode: boolean;
 }
 
 function normalizeUrl(value: string): string | null {
@@ -30,7 +31,14 @@ function normalizeUrl(value: string): string | null {
   }
 }
 
-export function EditorCanvas({ step, stepIndex, totalSteps, onPick, pickRequestToken }: EditorCanvasProps) {
+export function EditorCanvas({
+  step,
+  stepIndex,
+  totalSteps,
+  onPick,
+  pickRequestToken,
+  previewMode,
+}: EditorCanvasProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [urlInput, setUrlInput] = useState("");
@@ -85,6 +93,7 @@ export function EditorCanvas({ step, stepIndex, totalSteps, onPick, pickRequestT
 
   return (
     <div className="flex h-full flex-col bg-zinc-950">
+      {!previewMode && (
       <div className="flex items-center gap-2 border-b border-zinc-800 bg-zinc-900 px-3 py-2">
         <Input
           value={urlInput}
@@ -139,6 +148,7 @@ export function EditorCanvas({ step, stepIndex, totalSteps, onPick, pickRequestT
         )}
         <InstallSnippetDialog />
       </div>
+      )}
 
       <div ref={canvasRef} className="relative flex-1 overflow-hidden">
         {!loadedUrl ? (
@@ -166,6 +176,7 @@ export function EditorCanvas({ step, stepIndex, totalSteps, onPick, pickRequestT
             canvasSize={canvasSize}
             hasTargetSelector={!!targetSelector}
             snippetDetected={snippetDetected}
+            hideEditorChrome={previewMode}
           />
         )}
       </div>
