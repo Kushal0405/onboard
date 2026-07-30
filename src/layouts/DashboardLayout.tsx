@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/features/auth/api/authService";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { SidebarNav } from "@/features/dashboard/components/SidebarNav";
+import { WorkspaceSwitcher } from "@/features/dashboard/components/WorkspaceSwitcher";
 
 export function DashboardLayout() {
   const navigate = useNavigate();
@@ -20,10 +22,14 @@ export function DashboardLayout() {
 
   return (
     <div className="flex h-screen">
-      <aside className="w-64 shrink-0 border-r bg-background">
+      <aside className="flex w-64 shrink-0 flex-col border-r bg-background">
         <div className="flex h-14 items-center border-b px-4">
           <span className="font-semibold">OnboardFlow</span>
         </div>
+        <div className="p-2">
+          <WorkspaceSwitcher />
+        </div>
+        <SidebarNav />
       </aside>
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-14 shrink-0 items-center justify-end gap-3 border-b px-4">

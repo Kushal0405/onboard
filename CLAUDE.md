@@ -42,8 +42,8 @@ Supabase project: `https://udsmmrdkevrwiicphhbp.supabase.co` (ref: `udsmmrdkevrw
 | 1 | Project setup (Vite/TS/Tailwind/shadcn/router scaffold) | ✅ Done | |
 | 2 | Supabase foundation (schema, RLS, auth) | ✅ Done | 14 migrations applied to live project; auth trigger verified end-to-end |
 | 3 | Authentication (email, Google, GitHub, protected routes, password reset) | ✅ Done | Login/signup/forgot-password/reset-password/OAuth-callback pages, RequireAuth-gated dashboard route, logout. Google OAuth enabled in Supabase dashboard by user; GitHub OAuth still needs dashboard setup |
-| 4 | Database (beyond Phase 2 base schema, if needed) | ⬜ Not started | |
-| 5 | Dashboard | ⬜ Not started | |
+| 4 | Database (beyond Phase 2 base schema, if needed) | ✅ Skipped | No gaps found; Phase 2's schema covers everything so far. Revisit only if a later phase needs new tables/columns |
+| 5 | Dashboard | ✅ Done | Workspace switcher, sidebar nav, empty-state home page — see below |
 | 6 | Projects (CRUD, search, pagination, duplicate) | ⬜ Not started | |
 | 7 | Tour Builder (create/delete/duplicate, draft/published/archived, undo/redo, autosave, version history) | ⬜ Not started | |
 | 8 | Visual Editor (steps, drag/reorder, properties panel, placement, element picker) | ⬜ Not started | |
@@ -67,6 +67,18 @@ Vite + React + TS scaffold, Tailwind + shadcn/ui init (New York/Zinc), ESLint fl
 - `DashboardLayout` now shows the signed-in user's email and a sign-out button (calls `authService.signOut()`).
 - **OAuth dashboard setup**: Google provider enabled by user in Supabase Dashboard → Authentication → Providers. GitHub still needs the same treatment (create a GitHub OAuth App, add Client ID/Secret in the Supabase dashboard, callback URL `https://udsmmrdkevrwiicphhbp.supabase.co/auth/v1/callback`) before the GitHub button will work — the code path is already wired and doesn't need changes once that's done.
 - Password reset flow: `ForgotPasswordPage` calls `resetPasswordForEmail` (redirects to `/reset-password`); Supabase auto-establishes a recovery session from the emailed link, and `ResetPasswordPage` calls `updateUser({ password })`.
+
+## Phase 5 — Dashboard (done)
+
+- `src/features/dashboard/stores/activeWorkspaceStore.ts` — Zustand store (persisted to localStorage) holding the currently selected workspace id.
+- `src/features/dashboard/api/workspaceQueries.ts` + `hooks/useWorkspaces.ts` — TanStack Query wrapper around `workspace_members` joined to `workspaces`, scoped by the signed-in user (RLS-enforced).
+- `hooks/useActiveWorkspace.ts` — resolves the active membership (persisted choice if still valid, else first membership) and keeps the store in sync.
+- `components/WorkspaceSwitcher.tsx` — dropdown in the sidebar to switch between workspaces the user belongs to.
+- `components/SidebarNav.tsx` — Dashboard / Projects / Analytics / Settings nav links (`react-router-dom` `NavLink`, active-state styling).
+- `DashboardLayout` now renders the workspace switcher + sidebar nav; unchanged sign-out behavior in the header.
+- `pages/DashboardHomePage.tsx` — real query against `projects` (`api/projectQueries.ts`, `count` with `head: true`) scoped to the active workspace; shows a genuine empty-state card when count is 0, or a project-count card otherwise. No mock/hardcoded stats.
+- `/dashboard/projects`, `/dashboard/analytics`, `/dashboard/settings` are routed to minimal "coming in Phase N" stub pages (`src/features/{projects,analytics,settings}/pages/`) — real implementations land in their respective phases.
+- Phase 4 (additional DB work) was reviewed and skipped: Phase 2's schema already covers what Phase 5 needed.
 
 ## Phase 2 — Supabase foundation (done, see migrations in supabase/migrations/)
 
