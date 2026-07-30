@@ -49,7 +49,7 @@ Supabase project: `https://udsmmrdkevrwiicphhbp.supabase.co` (ref: `udsmmrdkevrw
 | 6 | Projects (CRUD, search, pagination, duplicate) | ✅ Done | Duplicate shipped in Phase 7 alongside tour duplication |
 | 7 | Tour Builder (create/delete/duplicate, draft/published/archived, undo/redo, autosave, version history) | ✅ Done | Autosave shipped in Phase 8a |
 | 8 | Visual Editor (steps, drag/reorder, properties panel, placement, element picker) | ✅ Done | 8a (list/reorder/autosave), 8b (full properties panel), 8c (element picker + undo/redo + visual polish) all shipped. Picker requires the target page to load `/picker.js` (SDK-cooperative, like Userpilot/Intercom in production) — arbitrary cross-origin pages can't be click-picked due to browser security, not a bug. |
-| 9 | SDK (init/identify/track/start/stop/show/hide/destroy/updateUser, CDN + npm) | 🟡 In progress (9a+9b done) | 9a: full public API + rendering + get-tour. 9b: analytics event delivery via record-event, verified end-to-end (including a real concurrency bug found and fixed — see below). 9c (framework wrapper examples) still to come. |
+| 9 | SDK (init/identify/track/start/stop/show/hide/destroy/updateUser, CDN + npm) | ✅ Done | 9a (core API + rendering + get-tour), 9b (analytics delivery, real concurrency bug found+fixed), 9c (React/Next.js/Vue/Angular examples + packaging polish) all shipped. Also now actually served at /sdk/onboardflow.iife.js from the dashboard app build (see editor-redesign entry below). |
 | 10 | Analytics (event tracking, dashboards, charts, filtering) | ⬜ Not started | |
 | 11 | Settings (workspace, profile, password, API keys, team, domains, billing placeholder) | ⬜ Not started | |
 | 12 | Optimization (lazy loading, code splitting, memoization, virtualization) | ⬜ Not started | |
@@ -69,6 +69,13 @@ Vite + React + TS scaffold, Tailwind + shadcn/ui init (New York/Zinc), ESLint fl
 - `DashboardLayout` now shows the signed-in user's email and a sign-out button (calls `authService.signOut()`).
 - **OAuth dashboard setup**: Google provider enabled by user in Supabase Dashboard → Authentication → Providers. GitHub still needs the same treatment (create a GitHub OAuth App, add Client ID/Secret in the Supabase dashboard, callback URL `https://udsmmrdkevrwiicphhbp.supabase.co/auth/v1/callback`) before the GitHub button will work — the code path is already wired and doesn't need changes once that's done.
 - Password reset flow: `ForgotPasswordPage` calls `resetPasswordForEmail` (redirects to `/reset-password`); Supabase auto-establishes a recovery session from the emailed link, and `ResetPasswordPage` calls `updateUser({ password })`.
+
+## Phase 9c — SDK: framework examples + packaging polish (done)
+
+- `sdk/examples/{react.tsx,nextjs.tsx,vue.ts,angular.ts}` — idiomatic integration patterns (provider+hook, App-Router client-only init, plugin+composable, injectable service). These are documentation-as-code: excluded from the SDK's own `tsconfig.json` (`include: ["src"]` only) since they intentionally reference framework packages the SDK itself doesn't depend on. Confirmed they lint clean under the workspace's shared ESLint config.
+- `sdk/package.json` gained `license: "MIT"` (matches the repo's root `LICENSE`) and `keywords`.
+- `sdk/README.md` updated: corrected the stale claim that `track()` "just logs" (9b wired real delivery), added a Framework examples section linking each file.
+- No SDK runtime code changed in this pass — purely documentation/packaging, so no new live-Supabase verification was needed beyond the existing typecheck/lint/build pass.
 
 ## Editor redesign + install-verification flow (done, cross-cutting — touches Phase 8 and Phase 9 areas)
 

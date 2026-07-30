@@ -2,6 +2,8 @@
   "name": "@onboardflow/sdk",
   "version": "0.1.0",
   "description": "OnboardFlow tracking and tour-rendering SDK",
+  "license": "MIT",
+  "keywords": ["onboarding", "product-tours", "user-onboarding", "tooltips", "analytics"],
   "type": "module",
   "main": "./dist/onboardflow.cjs.js",
   "module": "./dist/onboardflow.es.js",
