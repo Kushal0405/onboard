@@ -29,7 +29,9 @@ styles/         globals.css (Tailwind + shadcn CSS vars)
 
 Path alias: `@/*` → `src/*`.
 
-Supabase project: `https://udsmmrdkevrwiicphhbp.supabase.co` (ref: `udsmmrdkevrwiicphhbp`). Credentials live in `.env.local` only (gitignored) — see `.env.example` for required variable names.
+This is a **pnpm workspace** (`pnpm-workspace.yaml`: `.` and `sdk`). The dashboard app (`src/`, this doc's main subject) and the distributable tracking SDK (`sdk/`, its own `package.json`/tsconfig/Vite config, built independently — see `sdk/README.md`) are separate packages so the SDK never pulls in dashboard dependencies. `supabase/functions/` holds Edge Functions (Deno) — currently `get-tour`, the public (no-JWT) endpoint the SDK calls to fetch published tour content by `public_key`.
+
+Supabase project: `https://udsmmrdkevrwiicphhbp.supabase.co` (ref: `udsmmrdkevrwiicphhbp`). Credentials live in `.env.local` only (gitignored) — see `.env.example` for required variable names. Edge Functions are deployed via `pnpm exec supabase functions deploy <name> --no-verify-jwt` (only for functions meant to be called anonymously, like `get-tour`) with `SUPABASE_ACCESS_TOKEN` set.
 
 ## Working style
 
@@ -47,7 +49,7 @@ Supabase project: `https://udsmmrdkevrwiicphhbp.supabase.co` (ref: `udsmmrdkevrw
 | 6 | Projects (CRUD, search, pagination, duplicate) | ✅ Done | Duplicate shipped in Phase 7 alongside tour duplication |
 | 7 | Tour Builder (create/delete/duplicate, draft/published/archived, undo/redo, autosave, version history) | ✅ Done | Autosave shipped in Phase 8a |
 | 8 | Visual Editor (steps, drag/reorder, properties panel, placement, element picker) | ✅ Done | 8a (list/reorder/autosave), 8b (full properties panel), 8c (element picker + undo/redo + visual polish) all shipped. Picker requires the target page to load `/picker.js` (SDK-cooperative, like Userpilot/Intercom in production) — arbitrary cross-origin pages can't be click-picked due to browser security, not a bug. |
-| 9 | SDK (init/identify/track/start/stop/show/hide/destroy/updateUser, CDN + npm) | ⬜ Not started | |
+| 9 | SDK (init/identify/track/start/stop/show/hide/destroy/updateUser, CDN + npm) | 🟡 In progress (9a done) | 9a: full public API surface, all 9 step-type rendering, caching + retry, get-tour Edge Function, verified end-to-end against live Supabase. 9b (analytics wiring) and 9c (framework wrapper examples) still to come. |
 | 10 | Analytics (event tracking, dashboards, charts, filtering) | ⬜ Not started | |
 | 11 | Settings (workspace, profile, password, API keys, team, domains, billing placeholder) | ⬜ Not started | |
 | 12 | Optimization (lazy loading, code splitting, memoization, virtualization) | ⬜ Not started | |
@@ -67,6 +69,19 @@ Vite + React + TS scaffold, Tailwind + shadcn/ui init (New York/Zinc), ESLint fl
 - `DashboardLayout` now shows the signed-in user's email and a sign-out button (calls `authService.signOut()`).
 - **OAuth dashboard setup**: Google provider enabled by user in Supabase Dashboard → Authentication → Providers. GitHub still needs the same treatment (create a GitHub OAuth App, add Client ID/Secret in the Supabase dashboard, callback URL `https://udsmmrdkevrwiicphhbp.supabase.co/auth/v1/callback`) before the GitHub button will work — the code path is already wired and doesn't need changes once that's done.
 - Password reset flow: `ForgotPasswordPage` calls `resetPasswordForEmail` (redirects to `/reset-password`); Supabase auto-establishes a recovery session from the emailed link, and `ResetPasswordPage` calls `updateUser({ password })`.
+
+## Phase 9a — SDK: core vanilla JS SDK (done)
+
+Phase 9 splits into 9a (this — core SDK + data fetch path), 9b (analytics event delivery to `analytics_events`/`sessions`), 9c (npm/CDN packaging polish + React/Next/Vue/Angular framework examples).
+
+- **Data fetch path**: the SDK runs anonymously on a customer's site with no Supabase Auth session, so it can't satisfy any RLS policy (all require workspace membership). `supabase/functions/get-tour/index.ts` is a public Edge Function (`verify_jwt = false` in `supabase/config.toml`) that validates a `public_key` against `api_keys`, then returns published tours + their latest-published-version steps for that project, using the service role internally (the Edge Function itself is the trust boundary, not the caller). Deployed via `supabase functions deploy get-tour --no-verify-jwt`. Verified live: 200 + real tour/step data for a valid key, 401 for an invalid one, called with zero auth headers.
+- **`sdk/` package** (own `package.json`, builds independently of the dashboard app): `src/index.ts` exports a singleton `OnboardFlow` instance implementing the full spec'd API — `init`, `identify`, `updateUser`, `track`, `start`, `stop`, `show`, `hide`, `destroy`. `init()` resumes at the first tour/step the visitor hasn't completed (tracked in `localStorage`), matching "identify returning visitors and resume state" behavior.
+- **Renderer** (`src/renderer.ts`, `src/position.ts`, `src/styles.ts`) — real DOM rendering (no framework, no shadow DOM yet) for all 9 step types: `tooltip`/`hotspot`/`floating_card` position relative to `target_selector` with a highlight box; `beacon` renders a pulsing dot that expands into a card on click; `modal`/`announcement`/`confirmation` center; `banner` is a fixed top bar; `checklist` renders its items inline in the card. Reuses the exact `StepContent` shape from `src/features/editor/types.ts` (duplicated into `sdk/src/types.ts` since the SDK can't depend on the dashboard app's source — kept in sync manually for now).
+- **Caching/resilience** (`src/api.ts`): `get-tour` responses cached in `localStorage` for 60s with stale-cache fallback on fetch failure; retries up to 3 times with exponential backoff on 5xx/network errors. `src/storage.ts` also persists a per-visitor anonymous id and per-tour completed-step-ids.
+- **Build**: two Vite configs — `vite.config.ts` (es + cjs, named exports, for `npm install @onboardflow/sdk`) and `vite.config.cdn.ts` (iife from a separate `cdn-entry.ts` default-export-only entry, so `window.OnboardFlow` is the SDK instance directly, not a namespace object — named+default exports together in one iife build produces `window.OnboardFlow.default`, which is wrong for a `<script src>` consumer). Gzipped iife bundle is ~4KB.
+- **Verified end-to-end**: used jsdom to load the actual built `dist/onboardflow.iife.js`, called `init()` against the live `get-tour` function with a real published 2-step tour (a targeted tooltip anchored to a real button, then a centered modal), clicked through both steps via the rendered buttons, confirmed correct highlight/no-highlight per step type, confirmed the DOM fully clears on tour completion, and confirmed all three localStorage cache keys were written.
+- `track()` currently only `console.debug`s — Phase 9b wires it to a `record-event` Edge Function writing into `sessions`/`analytics_events` (both tables were already designed in Phase 2 with RLS that blocks all client writes for exactly this reason — service-role-only via an Edge Function).
+- **Not yet done**: analytics delivery (9b), npm publish config beyond a valid `package.json` (not actually published to a registry), framework wrapper examples beyond the vanilla JS one in `sdk/examples/vanilla.html` (9c).
 
 ## Phase 8c — Visual Editor: element picker, undo/redo, visual polish (done)
 
