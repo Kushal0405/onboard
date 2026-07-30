@@ -77,6 +77,11 @@ Vite + React + TS scaffold, Tailwind + shadcn/ui init (New York/Zinc), ESLint fl
 - `sdk/README.md` updated: corrected the stale claim that `track()` "just logs" (9b wired real delivery), added a Framework examples section linking each file.
 - No SDK runtime code changed in this pass — purely documentation/packaging, so no new live-Supabase verification was needed beyond the existing typecheck/lint/build pass.
 
+## Canvas URL preload + debug logging (done)
+
+- `EditorCanvas` now accepts `initialUrl` and auto-loads it once (guarded by a ref so it doesn't refire on every render). `TourEditorPage` fetches the tour's project via `useProject(tour.project_id)` and passes `project.site_url` through, so the editor canvas opens already pointed at the site captured during project creation instead of requiring the user to retype it every time.
+- Added `console.log` on successful init to both `public/picker.js` ("picker.js initialized on <url>") and the real SDK (`sdk/src/index.ts`, "SDK initialized on <url> — N published tour(s) loaded") — makes it possible to confirm from the target page's own devtools console whether the script actually loaded and ran at all, independent of whether the parent ever received a postMessage back (useful for debugging cases like the display:none iframe bug above, where the script silently never ran).
+
 ## Editor drill-down settings + canvas mini-toolbar + install-check fix (done, third UI pass)
 
 A further pass after the user shared a 5th screenshot (Native Tooltip Settings with Element/Placement/Behavior/Frequency/Embedding drill-down rows and a floating on-canvas mini-toolbar).

@@ -50,6 +50,10 @@ class OnboardFlowSDK {
 
     await this.initPromise;
 
+    console.log(
+      `[OnboardFlow] SDK initialized on ${window.location.href} — ${this.toursResponse?.tours.length ?? 0} published tour(s) loaded`,
+    );
+
     if (options.autoStart !== false && this.toursResponse?.tours.length) {
       const firstIncomplete = this.toursResponse.tours.find(
         (tour) => readCompletedStepIds(tour.id).size < tour.steps.length,

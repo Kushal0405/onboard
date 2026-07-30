@@ -22,6 +22,7 @@ interface EditorCanvasProps {
   onDuplicateStep: () => void;
   onDeleteStep: () => void;
   isDuplicating: boolean;
+  initialUrl?: string | null;
 }
 
 function normalizeUrl(value: string): string | null {
@@ -45,6 +46,7 @@ export function EditorCanvas({
   onDuplicateStep,
   onDeleteStep,
   isDuplicating,
+  initialUrl,
 }: EditorCanvasProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -53,6 +55,17 @@ export function EditorCanvas({
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const { status, snippetDetected, startPicking, stopPicking, resetForNewUrl } =
     useElementPicker(iframeRef);
+  const hasAppliedInitialUrl = useRef(false);
+
+  useEffect(() => {
+    if (hasAppliedInitialUrl.current || !initialUrl) return;
+    hasAppliedInitialUrl.current = true;
+    const normalized = normalizeUrl(initialUrl);
+    if (normalized) {
+      setUrlInput(initialUrl);
+      setLoadedUrl(normalized);
+    }
+  }, [initialUrl]);
 
   const stepType = step?.liveStepType ?? step?.step_type ?? null;
   const targetSelector = stepType && stepSupportsTargeting(stepType) ? step?.target_selector ?? null : null;

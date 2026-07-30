@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTour, useLatestTourVersion } from "@/features/tours/hooks/useTour";
 import { useTourMutations } from "@/features/tours/hooks/useTourMutations";
+import { useProject } from "@/features/projects/hooks/useProject";
 import { TourStatusBadge } from "@/features/tours/components/TourStatusBadge";
 import { AddStepMenu } from "@/features/editor/components/AddStepMenu";
 import { EditorBottomBar } from "@/features/editor/components/EditorBottomBar";
@@ -34,6 +35,7 @@ export function TourEditorPage() {
   const { data: tour, isLoading: isTourLoading } = useTour(tourId);
   const { data: latestVersion, isLoading: isVersionLoading } = useLatestTourVersion(tourId);
   const tourVersionId = latestVersion?.id;
+  const { data: project } = useProject(tour?.project_id);
 
   const { data: steps, isLoading: isStepsLoading } = useSteps(tourVersionId);
   const { create, remove, reorder, duplicate } = useStepMutations(tourVersionId);
@@ -220,6 +222,7 @@ export function TourEditorPage() {
               onDuplicateStep={() => selectedStep && void handleDuplicateStep(selectedStep)}
               onDeleteStep={() => selectedStep && void handleDeleteStep(selectedStep)}
               isDuplicating={duplicate.isPending}
+              initialUrl={project?.site_url}
             />
 
             {!previewMode && (

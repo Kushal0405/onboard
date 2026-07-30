@@ -206,5 +206,6 @@
     }
   });
 
+  console.log("[OnboardFlow] picker.js initialized on", window.location.href);
   postToParent("picker-ready", {});
 })();
